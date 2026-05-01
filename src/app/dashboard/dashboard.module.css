@@ -1,22 +1,24 @@
 .page { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  display: flex; justify-content: space-between;
+  align-items: center; margin-bottom: 2rem;
 }
 .header h1 { font-size: 1.75rem; font-weight: 700; }
+.headerRight { display: flex; gap: 0.75rem; align-items: center; }
 
 .newBtn {
-  background: var(--accent);
-  color: #fff;
-  padding: 0.6rem 1.25rem;
-  border-radius: var(--radius);
-  font-weight: 600;
-  font-size: 0.9rem;
+  background: var(--accent); color: #fff;
+  padding: 0.6rem 1.25rem; border-radius: var(--radius); font-weight: 600;
 }
 .newBtn:hover { background: var(--accent-hover); color: #fff; }
+
+.refreshBtn {
+  background: var(--surface); color: var(--text-muted);
+  border: 1px solid var(--border);
+  padding: 0.6rem 1rem; border-radius: var(--radius); font-size: 0.875rem;
+}
+.refreshBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .grid {
   display: grid;
@@ -24,18 +26,23 @@
   gap: 1.25rem;
 }
 
-.empty {
-  text-align: center;
-  margin-top: 6rem;
-  color: var(--text-muted);
+.skeleton     { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
+.skeletonCard {
+  height: 180px; border-radius: var(--radius);
+  background: var(--surface);
+  animation: pulse 1.5s ease-in-out infinite;
 }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.errorMsg { color: var(--danger); margin-bottom: 1rem; font-size: 0.9rem; }
+.empty, .noStreams { text-align: center; margin-top: 5rem; color: var(--text-muted); }
+.empty p, .noStreams p { margin-bottom: 1rem; }
 .connectBtn {
-  margin-top: 1rem;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  padding: 0.6rem 1.5rem;
-  border-radius: var(--radius);
-  font-weight: 600;
+  background: var(--accent); color: #fff; border: none;
+  padding: 0.6rem 1.5rem; border-radius: var(--radius); font-weight: 600;
+  cursor: pointer;
 }
-.noStreams { color: var(--text-muted); text-align: center; margin-top: 3rem; }

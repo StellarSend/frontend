@@ -1,55 +1,58 @@
 'use client';
-import { useParams } from 'next/navigation';
-import { useStreamBalance } from '@/hooks/useStreamBalance';
-import styles from './stream.module.css';
-
-// Mock stream data
-const MOCK: Record<string, any> = {
-  '0': {
-    id: '0', sender: 'GABC123456789012345678901234567890123456789012345678WXYZ',
-    recipient: 'GBOB123456789012345678901234567890123456789012345678WXYZ',
-    token: 'XLM', ratePerSecond: 116n,
-    startTime: 1735689600, stopTime: 1738368000,
-    withdrawn: 1_000_000n, cancelled: false,
-  },
-};
+import { useParams, useRouter } from 'next/navigation';
+import { useStream }          from '@/hooks/useStreams';
+import { useWallet }          from '@/context/WalletContext';
+import { useStreamBalance }   from '@/hooks/useStreamBalance';
+import styles                 from './stream.module.css';
 
 function fmt(stroops: bigint): string {
   return (Number(stroops) / 1e7).toFixed(7);
 }
 
 export default function StreamDetail() {
-  const { id }   = useParams<{ id: string }>();
-  const stream   = MOCK[id];
-  const balance  = useStreamBalance(
-    stream?.ratePerSecond ?? 0n,
-    stream?.withdrawn     ?? 0n,
-    stream?.startTime     ?? 0,
-    stream?.stopTime      ?? 0,
+  const { id }                     = useParams<{ id: string }>();
+  const router                     = useRouter();
+  const { address }                = useWallet();
+  const { stream, loading, error } = useStream(id);
+
+  const balance = useStreamBalance(
+    stream ? BigInt(stream.ratePerSecond) : 0n,
+    stream ? BigInt(stream.withdrawn)     : 0n,
+    stream?.startTime ?? 0,
+    stream?.stopTime  ?? 0,
   );
 
-  if (!stream) {
-    return <div className={styles.notFound}>Stream not found.</div>;
-  }
+  if (loading) return <div className={styles.loading}>Loading stream…</div>;
+  if (error || !stream) return (
+    <div className={styles.notFound}>
+      <p>{error ?? 'Stream not found.'}</p>
+      <button onClick={() => router.back()} className={styles.backBtn}>← Go back</button>
+    </div>
+  );
+
+  const isSender    = address === stream.sender;
+  const isRecipient = address === stream.recipient;
+  const isActive    = stream.status === 'active';
+  const perDay      = (Number(stream.ratePerSecond) * 86400 / 1e7).toFixed(4);
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>Stream #{id}</h1>
+      <button className={styles.backBtn} onClick={() => router.back()}>← Back</button>
+      <h1 className={styles.title}>Stream #{stream.id}</h1>
 
       <div className={styles.balanceCard}>
         <p className={styles.balanceLabel}>Withdrawable Balance</p>
         <p className={styles.balanceValue}>{fmt(balance)} XLM</p>
-        <p className={styles.balanceRate}>
-          {(Number(stream.ratePerSecond) * 86400 / 1e7).toFixed(4)} XLM/day
-        </p>
+        <p className={styles.balanceRate}>{perDay} XLM/day</p>
       </div>
 
       <div className={styles.details}>
         {[
-          ['From',  `${stream.sender.slice(0,5)}...${stream.sender.slice(-4)}`],
-          ['To',    `${stream.recipient.slice(0,5)}...${stream.recipient.slice(-4)}`],
-          ['Token', stream.token],
-          ['Status', stream.cancelled ? 'Cancelled' : 'Active'],
+          ['From',   `${stream.sender.slice(0,6)}...${stream.sender.slice(-4)}`],
+          ['To',     `${stream.recipient.slice(0,6)}...${stream.recipient.slice(-4)}`],
+          ['Token',  stream.token === 'native' ? 'XLM (Native)' : stream.token],
+          ['Status', stream.status.charAt(0).toUpperCase() + stream.status.slice(1)],
+          ['TX',     `${stream.txHash.slice(0,10)}...`],
         ].map(([k, v]) => (
           <div key={k} className={styles.detailRow}>
             <span className={styles.detailKey}>{k}</span>
@@ -58,10 +61,23 @@ export default function StreamDetail() {
         ))}
       </div>
 
-      {!stream.cancelled && (
+      {isActive && (
         <div className={styles.actions}>
-          <button className={styles.btnWithdraw}>Withdraw</button>
-          <button className={styles.btnCancel}>Cancel Stream</button>
+          {isRecipient && (
+            <button
+              className={styles.btnWithdraw}
+              disabled={balance === 0n}
+              title={balance === 0n ? 'Nothing to withdraw yet' : undefined}
+            >
+              Withdraw {fmt(balance)} XLM
+            </button>
+          )}
+          {isSender && (
+            <button className={styles.btnCancel}>Cancel Stream</button>
+          )}
+          {!isSender && !isRecipient && (
+            <p className={styles.notParty}>Connect the sender or recipient wallet to take action.</p>
+          )}
         </div>
       )}
     </div>

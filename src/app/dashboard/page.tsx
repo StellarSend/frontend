@@ -1,26 +1,13 @@
 'use client';
-import { useWallet } from '@/context/WalletContext';
+import Link from 'next/link';
+import { useWallet }  from '@/context/WalletContext';
+import { useStreams }  from '@/hooks/useStreams';
 import { StreamCard } from '@/components/molecules/StreamCard';
-import styles from './dashboard.module.css';
-
-// Mock data — replaced by live contract calls in production
-const MOCK_STREAMS = [
-  {
-    id: '0', recipient: 'GBOB123456789012345678901234567890123456789012345678WXYZ',
-    token: 'native', ratePerSecond: 116n,
-    startTime: 1735689600, stopTime: 1738368000,
-    withdrawn: 1_000_000n, cancelled: false,
-  },
-  {
-    id: '1', recipient: 'GCAR123456789012345678901234567890123456789012345678WXYZ',
-    token: 'native', ratePerSecond: 231n,
-    startTime: 1735776000, stopTime: 1743552000,
-    withdrawn: 5_000_000n, cancelled: false,
-  },
-];
+import styles         from './dashboard.module.css';
 
 export default function Dashboard() {
   const { address, connect } = useWallet();
+  const { streams, loading, error, refetch } = useStreams(address);
 
   if (!address) {
     return (
@@ -37,14 +24,40 @@ export default function Dashboard() {
     <div className={styles.page}>
       <header className={styles.header}>
         <h1>My Streams</h1>
-        <a href="/create" className={styles.newBtn}>+ New Stream</a>
+        <div className={styles.headerRight}>
+          <button className={styles.refreshBtn} onClick={refetch} disabled={loading}>
+            {loading ? 'Loading…' : '↻ Refresh'}
+          </button>
+          <Link href="/create" className={styles.newBtn}>+ New Stream</Link>
+        </div>
       </header>
 
-      {MOCK_STREAMS.length === 0 ? (
-        <p className={styles.noStreams}>No streams yet. Create your first one!</p>
+      {error && <p className={styles.errorMsg}>{error}</p>}
+
+      {loading && streams.length === 0 ? (
+        <div className={styles.skeleton}>
+          {[0,1,2].map(i => <div key={i} className={styles.skeletonCard} />)}
+        </div>
+      ) : streams.length === 0 ? (
+        <div className={styles.noStreams}>
+          <p>No streams yet.</p>
+          <Link href="/create" className={styles.newBtn}>Create your first stream →</Link>
+        </div>
       ) : (
         <div className={styles.grid}>
-          {MOCK_STREAMS.map(s => <StreamCard key={s.id} {...s} />)}
+          {streams.map(s => (
+            <StreamCard
+              key={s.id}
+              id={s.id}
+              recipient={s.recipient}
+              token={s.token}
+              ratePerSecond={BigInt(s.ratePerSecond)}
+              startTime={s.startTime}
+              stopTime={s.stopTime}
+              withdrawn={BigInt(s.withdrawn)}
+              cancelled={s.status === 'cancelled'}
+            />
+          ))}
         </div>
       )}
     </div>

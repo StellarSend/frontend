@@ -1,70 +1,91 @@
 'use client';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useWallet }   from '@/context/WalletContext';
+import { vestingApi, type ApiVestingSchedule } from '@/services/api';
 import styles from './vesting.module.css';
 
-const MOCK_SCHEDULES = [
-  {
-    id: '0',
-    beneficiary: 'GBOB123456789012345678901234567890123456789012345678WXYZ',
-    totalAmount: 120_000_000_000n,
-    cliffTime: 1740787200,
-    endTime:   1767225600,
-    claimed:   0n,
-    revoked:   false,
-  },
-];
-
-function fmt(stroops: bigint) {
-  return (Number(stroops) / 1e7).toLocaleString();
+function fmt(stroops: string) {
+  return (Number(stroops) / 1e7).toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
-function pct(schedule: typeof MOCK_SCHEDULES[0]): number {
+function vestPct(s: ApiVestingSchedule): number {
   const now = Math.floor(Date.now() / 1000);
-  if (now < schedule.cliffTime) return 0;
-  if (now >= schedule.endTime)  return 100;
-  const elapsed  = now - schedule.cliffTime;
-  const duration = schedule.endTime - schedule.cliffTime;
-  return Math.round((elapsed / duration) * 100);
+  if (now < s.cliffTime) return 0;
+  if (now >= s.endTime)  return 100;
+  return Math.round(((now - s.cliffTime) / (s.endTime - s.cliffTime)) * 100);
 }
 
 export default function Vesting() {
+  const { address }   = useWallet();
+  const [schedules, setSchedules] = useState<ApiVestingSchedule[]>([]);
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!address) { setSchedules([]); return; }
+    setLoading(true);
+    vestingApi.list(address)
+      .then(setSchedules)
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [address]);
+
+  if (!address) {
+    return (
+      <div className={styles.page}>
+        <p className={styles.notConnected}>Connect your wallet to view vesting schedules.</p>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <h1>Vesting Schedules</h1>
-        <Link href="/vesting/create" className={styles.newBtn}>
-          + New Schedule
-        </Link>
+        <Link href="/vesting/create" className={styles.newBtn}>+ New Schedule</Link>
       </div>
 
-      <div className={styles.list}>
-        {MOCK_SCHEDULES.map(s => (
-          <div key={s.id} className={styles.card}>
-            <div className={styles.cardHeader}>
-              <span className={styles.schedId}>Schedule #{s.id}</span>
-              <span className={styles.badge}>{s.revoked ? 'Revoked' : 'Active'}</span>
-            </div>
+      {error && <p className={styles.error}>{error}</p>}
 
-            <div className={styles.row}>
-              <span>Beneficiary</span>
-              <span>{s.beneficiary.slice(0,5)}...{s.beneficiary.slice(-4)}</span>
-            </div>
-            <div className={styles.row}>
-              <span>Total</span>
-              <span>{fmt(s.totalAmount)} XLM</span>
-            </div>
-            <div className={styles.row}>
-              <span>Claimed</span>
-              <span>{fmt(s.claimed)} XLM</span>
-            </div>
+      {loading ? (
+        <p className={styles.loading}>Loading…</p>
+      ) : schedules.length === 0 ? (
+        <p className={styles.empty}>No vesting schedules found.</p>
+      ) : (
+        <div className={styles.list}>
+          {schedules.map(s => {
+            const pct = vestPct(s);
+            return (
+              <div key={s.id} className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <span className={styles.schedId}>Schedule #{s.id}</span>
+                  <span className={styles.badge}>{s.revoked ? 'Revoked' : 'Active'}</span>
+                </div>
 
-            <div className={styles.bar}>
-              <div className={styles.fill} style={{ width: `${pct(s)}%` }} />
-            </div>
-            <p className={styles.pctLabel}>{pct(s)}% vested</p>
-          </div>
-        ))}
-      </div>
+                {[
+                  ['Beneficiary', `${s.beneficiary.slice(0,5)}...${s.beneficiary.slice(-4)}`],
+                  ['Total',       `${fmt(s.totalAmount)} XLM`],
+                  ['Claimed',     `${fmt(s.claimed)} XLM`],
+                ].map(([k, v]) => (
+                  <div key={k} className={styles.row}>
+                    <span>{k}</span><span>{v}</span>
+                  </div>
+                ))}
+
+                <div className={styles.bar}>
+                  <div className={styles.fill} style={{ width: `${pct}%` }} />
+                </div>
+                <p className={styles.pctLabel}>{pct}% vested</p>
+
+                {!s.revoked && (
+                  <button className={styles.claimBtn}>Claim Vested Tokens</button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
