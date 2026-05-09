@@ -53,9 +53,10 @@ const LANDING_LINKS = [
   { label: "Governance", href: "#" },
 ]
 
-const APP_LINKS: Array<{ label: string; to: "/trade" | "/earn" | null }> = [
+const APP_LINKS: Array<{ label: string; to: "/trade" | "/earn" | "/referrals" | null }> = [
   { label: "Trade", to: "/trade" },
   { label: "Earn", to: "/earn" },
+  { label: "Referrals", to: "/referrals" },
   { label: "Stats", to: null },
   { label: "Docs", to: null },
 ]
@@ -72,7 +73,7 @@ export function Navbar({ variant }: Props) {
     <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md backdrop-saturate-150">
       <div
         className={`mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 ${
-          isApp ? "h-14 max-w-full" : "h-16 max-w-[1320px]"
+          isApp ? "h-14 max-w-full" : "h-16 max-w-330"
         }`}
       >
         <Logo />
@@ -112,13 +113,13 @@ export function Navbar({ variant }: Props) {
         {/* Actions */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Button variant="outline" className="h-[38px] px-4 text-[13.5px]">
+          <Button variant="outline" className="h-9.5 px-4 text-[13.5px]">
             Connect
           </Button>
           {!isApp && (
             <Button
               variant="default"
-              className="hidden h-[38px] gap-2 px-4 text-[13.5px] sm:inline-flex"
+              className="hidden h-9.5 gap-2 px-4 text-[13.5px] sm:inline-flex"
             >
               Launch app
               <span className="transition-transform group-hover:translate-x-0.5">→</span>

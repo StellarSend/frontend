@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ReferralsRouteImport } from './routes/referrals'
 import { Route as EarnRouteImport } from './routes/earn'
 import { Route as TradeRouteImport } from './routes/trade'
 import { Route as IndexRouteImport } from './routes/index'
 
+const ReferralsRoute = ReferralsRouteImport.update({
+  id: '/referrals',
+  path: '/referrals',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EarnRoute = EarnRouteImport.update({
   id: '/earn',
   path: '/earn',
@@ -32,35 +38,46 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/earn': typeof EarnRoute
+  '/referrals': typeof ReferralsRoute
   '/trade': typeof TradeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/earn': typeof EarnRoute
+  '/referrals': typeof ReferralsRoute
   '/trade': typeof TradeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/earn': typeof EarnRoute
+  '/referrals': typeof ReferralsRoute
   '/trade': typeof TradeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/earn' | '/trade'
+  fullPaths: '/' | '/earn' | '/referrals' | '/trade'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/earn' | '/trade'
-  id: '__root__' | '/' | '/earn' | '/trade'
+  to: '/' | '/earn' | '/referrals' | '/trade'
+  id: '__root__' | '/' | '/earn' | '/referrals' | '/trade'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EarnRoute: typeof EarnRoute
+  ReferralsRoute: typeof ReferralsRoute
   TradeRoute: typeof TradeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/referrals': {
+      id: '/referrals'
+      path: '/referrals'
+      fullPath: '/referrals'
+      preLoaderRoute: typeof ReferralsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/earn': {
       id: '/earn'
       path: '/earn'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EarnRoute: EarnRoute,
+  ReferralsRoute: ReferralsRoute,
   TradeRoute: TradeRoute,
 }
 export const routeTree = rootRouteImport
