@@ -1,19 +1,12 @@
 import { useState } from "react"
 import { cn } from "@workspace/ui/lib/utils"
 import { Button } from "@workspace/ui/components/button"
-import { Badge } from "@workspace/ui/components/badge"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { useUserGmPositions, useUserGlvPositions, useUserSO4Stats } from "../../hooks/use-earn-data"
 import { withdrawGM, withdrawGLV, unstakeSO4 } from "../../lib/earn"
+import { formatUsd, formatPct } from "@/shared/lib/format"
 
-function fmtUsd(v: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(v)
-}
+
 
 function WalletEmptyIcon() {
   return (
@@ -138,7 +131,7 @@ export function AssetsList() {
                   </td>
                   <td className="px-5 py-3.5 text-right font-mono text-muted-foreground">—</td>
                   <td className="px-5 py-3.5 text-right font-mono">
-                    {fmtUsd(so4Stats?.stakedValueUsd ?? 0)}
+                    {formatUsd(so4Stats?.stakedValueUsd ?? 0)}
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <Button
@@ -167,9 +160,9 @@ export function AssetsList() {
                     <TypeBadge kind="GM" />
                   </td>
                   <td className="px-5 py-3.5 text-right font-mono text-green-400">
-                    {pos.apy.toFixed(2)}%
+                    {formatPct(pos.apy, { sign: false })}
                   </td>
-                  <td className="px-5 py-3.5 text-right font-mono">{fmtUsd(pos.balanceUsd)}</td>
+                  <td className="px-5 py-3.5 text-right font-mono">{formatUsd(pos.balanceUsd)}</td>
                   <td className="px-5 py-3.5 text-right">
                     <Button
                       size="xs"
@@ -200,9 +193,9 @@ export function AssetsList() {
                     <TypeBadge kind="GLV" />
                   </td>
                   <td className="px-5 py-3.5 text-right font-mono text-green-400">
-                    {pos.apy.toFixed(2)}%
+                    {formatPct(pos.apy, { sign: false })}
                   </td>
-                  <td className="px-5 py-3.5 text-right font-mono">{fmtUsd(pos.balanceUsd)}</td>
+                  <td className="px-5 py-3.5 text-right font-mono">{formatUsd(pos.balanceUsd)}</td>
                   <td className="px-5 py-3.5 text-right">
                     <Button
                       size="xs"

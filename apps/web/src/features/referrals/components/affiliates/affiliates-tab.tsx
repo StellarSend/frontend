@@ -4,22 +4,12 @@ import { Skeleton } from "@workspace/ui/components/skeleton"
 import { cn } from "@workspace/ui/lib/utils"
 import { useAffiliateStats, useAffiliateReferrals, type TimePeriod } from "../../hooks/use-referrals-data"
 import { createAffiliateCode, validateReferralCode } from "../../lib/referrals"
-import { getTierByLevel, getTierFromVolume, getNextTier, TIERS } from "../../data/tiers"
+import { getTierByLevel, getNextTier, TIERS } from "../../data/tiers"
 import { TimePeriodFilter } from "../shared/time-period-filter"
 import { StatChartCard } from "../shared/stat-chart-card"
+import { formatUsd, formatAddress } from "@/shared/lib/format"
 
-function fmtUsd(v: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 2,
-  }).format(v)
-}
 
-function fmtAddr(addr: string) {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`
-}
 
 // ── Create code wizard ──────────────────────────────────────────────────────
 
@@ -126,7 +116,7 @@ function CreateCodeForm({ onSuccess }: { onSuccess: () => void }) {
                     </span>
                   </td>
                   <td className="px-4 py-3 font-mono text-muted-foreground">
-                    {tier.minVolumeUsd === 0 ? "Any" : `≥ ${fmtUsd(tier.minVolumeUsd)}`}
+                    {tier.minVolumeUsd === 0 ? "Any" : `≥ ${formatUsd(tier.minVolumeUsd, { compact: true })}`}
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-violet-400">
                     {tier.affiliateCommissionPct}%
@@ -177,7 +167,7 @@ function TierProgress({ tier, volumeUsd }: { tier: 1 | 2 | 3; volumeUsd: number 
           </span>
         </div>
         <span className="text-[11px] text-muted-foreground">
-          {fmtUsd(remaining)} more needed
+          {formatUsd(remaining, { compact: true })} more needed
         </span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -224,9 +214,9 @@ function ReferralsTable() {
             <tbody>
               {referrals.map((r) => (
                 <tr key={r.account} className="border-b border-border/40 last:border-b-0 hover:bg-muted/20">
-                  <td className="px-5 py-3 font-mono">{fmtAddr(r.account)}</td>
-                  <td className="px-5 py-3 text-right font-mono">{fmtUsd(r.volumeUsd)}</td>
-                  <td className="px-5 py-3 text-right font-mono text-violet-400">{fmtUsd(r.commissionUsd)}</td>
+                  <td className="px-5 py-3 font-mono">{formatAddress(r.account)}</td>
+                  <td className="px-5 py-3 text-right font-mono">{formatUsd(r.volumeUsd, { compact: true })}</td>
+                  <td className="px-5 py-3 text-right font-mono text-violet-400">{formatUsd(r.commissionUsd, { compact: true })}</td>
                   <td className="px-5 py-3 text-muted-foreground">{r.registeredAt}</td>
                 </tr>
               ))}
@@ -241,12 +231,10 @@ function ReferralsTable() {
 export function AffiliatesTab() {
   const [period, setPeriod] = useState<TimePeriod>("total")
   const { data: stats, isLoading } = useAffiliateStats(period)
-  const [showCreate, setShowCreate] = useState(false)
-
   const hasCode = Boolean(stats?.code)
 
   if (!hasCode && !isLoading) {
-    return <CreateCodeForm onSuccess={() => setShowCreate(false)} />
+    return <CreateCodeForm onSuccess={() => {}} />
   }
 
   return (

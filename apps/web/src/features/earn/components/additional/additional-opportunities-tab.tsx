@@ -4,10 +4,9 @@ import { Button } from "@workspace/ui/components/button"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { useUserSO4Stats } from "../../hooks/use-earn-data"
 import { vestEsSO4, compoundRewards } from "../../lib/earn"
+import { formatToken } from "@/shared/lib/format"
 
-function fmtToken(v: number, symbol: string) {
-  return `${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ${symbol}`
-}
+
 
 function SectionCard({
   title,
@@ -106,7 +105,7 @@ export function AdditionalOpportunitiesTab() {
         <div className="flex flex-wrap gap-x-8 gap-y-3">
           <StatRow
             label="esSO4 balance"
-            value={fmtToken(so4Stats?.esSO4Balance ?? 0, "esSO4")}
+            value={formatToken(so4Stats?.esSO4Balance ?? 0, "esSO4", { minDecimals: 2 })}
             isLoading={isLoading}
           />
           <StatRow label="Vesting duration" value="12 months" />
@@ -132,7 +131,7 @@ export function AdditionalOpportunitiesTab() {
         <div className="flex flex-wrap gap-x-8 gap-y-3">
           <StatRow
             label="Multiplier Points"
-            value={fmtToken(so4Stats?.multiplierPoints ?? 0, "MP")}
+            value={formatToken(so4Stats?.multiplierPoints ?? 0, "MP", { minDecimals: 2 })}
             isLoading={isLoading}
           />
           <StatRow label="Boost cap" value="100% of base APR" />
@@ -145,9 +144,11 @@ export function AdditionalOpportunitiesTab() {
         title="Referrals"
         description="Share your referral code to earn fee discounts and rebates. Referrers receive a percentage of their referees' trading fees, paid in USDC every epoch."
         action={
-          <Button size="sm" variant="outline" className="h-8 text-[12px]" asChild>
-            <Link to="/referrals">Go to Referrals →</Link>
-          </Button>
+          <Link to="/referrals">
+            <Button size="sm" variant="outline" className="h-8 text-[12px]">
+              Go to Referrals →
+            </Button>
+          </Link>
         }
       >
         <div className="flex flex-wrap gap-x-8 gap-y-3">

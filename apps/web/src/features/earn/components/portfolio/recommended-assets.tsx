@@ -3,6 +3,7 @@ import { cn } from "@workspace/ui/lib/utils"
 import { Button } from "@workspace/ui/components/button"
 import { GLV_VAULTS, GM_POOLS } from "../../data/pools"
 import { depositGM, depositGLV, buySO4 } from "../../lib/earn"
+import { formatPct } from "@/shared/lib/format"
 
 const TOKEN_COLORS: Record<string, string> = {
   BTC: "bg-orange-500/10 text-orange-400 ring-orange-500/20",
@@ -141,7 +142,7 @@ function GlvCard() {
             <span className="font-normal text-muted-foreground">[{vault.displayPair}]</span>
           </p>
           <div className="flex items-baseline gap-1">
-            <span className="text-base font-bold text-green-400">{vault.apy.toFixed(2)}%</span>
+            <span className="text-base font-bold text-green-400">{formatPct(vault.apy, { sign: false })}</span>
             <span className="text-[10px] text-muted-foreground">Performance APY</span>
           </div>
         </div>
@@ -195,7 +196,7 @@ function GmCard() {
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-[13px] font-bold text-green-400">{pool.apy.toFixed(2)}%</p>
+              <p className="text-[13px] font-bold text-green-400">{formatPct(pool.apy, { sign: false })}</p>
               <p className="text-[10px] text-muted-foreground">Performance APY</p>
             </div>
             <Button

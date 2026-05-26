@@ -4,7 +4,7 @@ import { Button } from "@workspace/ui/components/button"
 import { Badge } from "@workspace/ui/components/badge"
 import { usePositions, type Position } from "../../hooks/usePositions"
 import { createDecreaseOrder } from "../../lib/stellar"
-import { formatUsd } from "../../lib/trade-math"
+import { formatUsd, formatPct } from "@/shared/lib/format"
 
 type Props = {
   onSelectPosition?: (position: Position) => void
@@ -96,7 +96,7 @@ export function PositionsList({ onSelectPosition }: Props) {
               <td className="px-4 py-2 font-mono">
                 <span className={p.pnl >= 0 ? "text-green-500" : "text-red-500"}>
                   {p.pnl >= 0 ? "+" : ""}
-                  {formatUsd(p.pnl)} ({p.pnlPercent.toFixed(2)}%)
+                  {formatUsd(p.pnl)} ({formatPct(p.pnlPercent)})
                 </span>
               </td>
               <td className="px-4 py-2">

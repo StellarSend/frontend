@@ -3,18 +3,12 @@ import { cn } from "@workspace/ui/lib/utils"
 import { Button } from "@workspace/ui/components/button"
 import { usePoolsApy } from "../../hooks/use-earn-data"
 import { depositGM, depositGLV } from "../../lib/earn"
+import { formatUsd, formatPct } from "@/shared/lib/format"
 
 type Filter = "all" | "glv" | "gm"
 type SortKey = "apy" | "tvl"
 
-function fmtCompact(v: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 2,
-  }).format(v)
-}
+
 
 const TOKEN_COLORS: Record<string, string> = {
   BTC: "bg-orange-500/10 text-orange-400 ring-orange-500/20",
@@ -212,12 +206,12 @@ export function DiscoverTab() {
 
                   <td className="px-5 py-4 text-right">
                     <span className="font-mono font-semibold text-green-400">
-                      {row.apy.toFixed(2)}%
+                      {formatPct(row.apy, { sign: false })}
                     </span>
                   </td>
 
                   <td className="px-5 py-4 text-right font-mono text-muted-foreground">
-                    {fmtCompact(row.tvlUsd)}
+                    {formatUsd(row.tvlUsd, { compact: true })}
                   </td>
 
                   <td className="px-5 py-4">
