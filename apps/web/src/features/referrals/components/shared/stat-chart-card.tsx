@@ -1,13 +1,7 @@
 import type { TimePeriod } from "../../hooks/use-referrals-data"
+import { formatUsd } from "@/shared/lib/format"
 
-function fmtUsd(v: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(v)
-}
+
 
 function xAxisLabels(period: TimePeriod): string[] {
   const now = new Date()
@@ -66,7 +60,7 @@ export function StatChartCard({ title, tooltip, value, period, accent = "blue" }
           </span>
         </div>
         <p className="mt-1.5 text-[22px] font-semibold tabular-nums tracking-tight">
-          {fmtUsd(value)}
+          {formatUsd(value)}
         </p>
       </div>
 

@@ -1,20 +1,11 @@
 import { useState } from "react"
 import { Button } from "@workspace/ui/components/button"
-import { cn } from "@workspace/ui/lib/utils"
+
 import { useDistributions, useAffiliateStats } from "../../hooks/use-referrals-data"
 import { claimDistribution } from "../../lib/referrals"
+import { formatUsd, formatToken } from "@/shared/lib/format"
 
-function fmtUsd(v: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(v)
-}
 
-function fmtToken(amount: number, token: string) {
-  return `${amount.toLocaleString("en-US", { maximumFractionDigits: 4 })} ${token}`
-}
 
 export function DistributionsTab() {
   const { data: distributions = [], isLoading } = useDistributions()
@@ -102,9 +93,9 @@ export function DistributionsTab() {
                   >
                     <td className="px-5 py-3.5 font-mono text-muted-foreground">{d.epoch}</td>
                     <td className="px-5 py-3.5 text-muted-foreground">{d.date}</td>
-                    <td className="px-5 py-3.5 text-right font-mono">{fmtToken(d.amount, d.token)}</td>
+                    <td className="px-5 py-3.5 text-right font-mono">{formatToken(d.amount, d.token)}</td>
                     <td className="px-5 py-3.5 font-mono">{d.token}</td>
-                    <td className="px-5 py-3.5 text-right font-mono">{fmtUsd(d.amountUsd)}</td>
+                    <td className="px-5 py-3.5 text-right font-mono">{formatUsd(d.amountUsd)}</td>
                     <td className="px-5 py-3.5 text-right">
                       <Button
                         size="xs"

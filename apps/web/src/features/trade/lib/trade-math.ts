@@ -89,22 +89,5 @@ export function estimateBorrowFeePerHour(sizeUsd: number, borrowingFactorBps = 1
   return (sizeUsd * borrowingFactorBps) / 10_000 / 24
 }
 
-/** Format a USD number for display */
-export function formatUsd(value: number, decimals = 2): string {
-  if (!isFinite(value)) return "-"
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(value)
-}
-
-/** Format a token amount for display */
-export function formatTokenAmount(value: number, decimals = 4, symbol?: string): string {
-  const formatted = value.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: decimals,
-  })
-  return symbol ? `${formatted} ${symbol}` : formatted
-}
+// Re-export from centralised format module for backwards compatibility
+export { formatUsd, formatToken as formatTokenAmount } from "@/shared/lib/format"

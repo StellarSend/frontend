@@ -12,6 +12,7 @@
 // Soroban RPC: https://soroban.stellar.org/api
 
 import { toast } from "sonner"
+import { formatUsd } from "@/shared/lib/format"
 import { sorobanRpc } from "../../lib/soroban/client"
 
 export type IncreaseOrderParams = {
@@ -65,7 +66,7 @@ export async function createIncreaseOrder(params: IncreaseOrderParams): Promise<
   await fakeTxDelay()
 
   toast.success(
-    `${params.isLong ? "Long" : "Short"} order submitted! Size: $${params.sizeDeltaUsd.toLocaleString()}`,
+    `${params.isLong ? "Long" : "Short"} order submitted! Size: ${formatUsd(params.sizeDeltaUsd)}`,
     { id: toastId, description: "Tx: 0xDUMMY…(not real)" },
   )
 
@@ -190,7 +191,7 @@ export async function createSidecarOrder(params: SidecarOrderParams): Promise<st
   // TODO: Encode as LimitDecrease (takeProfit) or StopLossDecrease (stopLoss) order
   //   via ExchangeRouter equivalent, using the same sendBatchOrderTxn pattern
   const label = params.type === "takeProfit" ? "Take Profit" : "Stop Loss"
-  const toastId = toast.loading(`Setting ${label} at $${params.triggerPrice.toLocaleString()}…`)
+  const toastId = toast.loading(`Setting ${label} at ${formatUsd(params.triggerPrice)}…`)
   await fakeTxDelay(900)
   toast.success(`${label} order placed`, { id: toastId, description: "Tx: DUMMY (not real)" })
   return "DUMMY_TX_HASH"

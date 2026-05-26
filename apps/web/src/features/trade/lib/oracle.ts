@@ -6,6 +6,8 @@
 //
 // Both are normalised into OhlcBar (oldest-first, prices as numbers, time in seconds).
 
+import { formatPct } from "@/shared/lib/format"
+
 export type TokenPrice = {
   symbol: string
   address: string
@@ -68,7 +70,7 @@ function parseGmxPrice(raw: string, symbol: string): number {
 }
 
 function pctStr(pct: number): string {
-  return `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`
+  return formatPct(pct)
 }
 
 // ─── fetchTokenPrices ────────────────────────────────────────────────────────
