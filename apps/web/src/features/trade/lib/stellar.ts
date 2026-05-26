@@ -12,6 +12,7 @@
 // Soroban RPC: https://soroban.stellar.org/api
 
 import { toast } from "sonner"
+import { sorobanRpc } from "../../lib/soroban/client"
 
 export type IncreaseOrderParams = {
   account: string

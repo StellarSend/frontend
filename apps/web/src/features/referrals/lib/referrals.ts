@@ -1,4 +1,5 @@
 import { toast } from "sonner"
+import { sorobanRpc } from "../../lib/soroban/client"
 
 function fakeTxDelay(ms = 1500): Promise<void> {
   return new Promise((res) => setTimeout(res, ms))
