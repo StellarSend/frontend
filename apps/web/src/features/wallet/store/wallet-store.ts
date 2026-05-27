@@ -7,10 +7,12 @@ type Network = "testnet" | "mainnet"
 type WalletStore = {
   address: string | null
   network: Network
+  pendingTransactionXdr: string | null
   walletId: string | null
   status: WalletStatus
   setConnected: (address: string, walletId: string) => void
   setDisconnected: () => void
+  setPendingTransactionXdr: (xdr: string | null) => void
   setStatus: (status: WalletStatus) => void
 }
 
@@ -22,6 +24,7 @@ export const useWalletStore = create<WalletStore>()(
     (set) => ({
       address: null,
       network: DEFAULT_NETWORK,
+      pendingTransactionXdr: null,
       walletId: null,
       status: "disconnected",
 
@@ -30,6 +33,9 @@ export const useWalletStore = create<WalletStore>()(
 
       setDisconnected: () =>
         set({ address: null, walletId: null, status: "disconnected" }),
+
+      setPendingTransactionXdr: (pendingTransactionXdr) =>
+        set({ pendingTransactionXdr }),
 
       setStatus: (status) => set({ status }),
     }),

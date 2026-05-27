@@ -1,4 +1,9 @@
-import { useState, type ComponentProps } from "react"
+import { useEffect, useMemo, useState, type ComponentProps } from "react"
+import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk"
+import { FREIGHTER_ID } from "@creit.tech/stellar-wallets-kit/modules/freighter.module"
+import { HANA_ID } from "@creit.tech/stellar-wallets-kit/modules/hana.module"
+import { XBULL_ID } from "@creit.tech/stellar-wallets-kit/modules/xbull.module"
+import { QRCodeSVG } from "qrcode.react"
 
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -10,12 +15,38 @@ import {
 } from "@workspace/ui/components/dialog"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { createSep7ConnectUri, createSep7TransactionUri } from "../lib/sep7"
 import { useWalletStore } from "../store/wallet-store"
 
 type ConnectButtonProps = Omit<
   ComponentProps<typeof Button>,
   "aria-label" | "children" | "onClick" | "type"
 >
+
+type WalletOption = {
+  id: string
+  name: string
+  installUrl: string
+}
+
+const WALLET_OPTIONS: WalletOption[] = [
+  {
+    id: FREIGHTER_ID,
+    name: "Freighter",
+    installUrl: "https://freighter.app",
+  },
+  {
+    id: XBULL_ID,
+    name: "xBull",
+    installUrl: "https://xbull.app",
+  },
+  {
+    id: HANA_ID,
+    name: "Hana",
+    installUrl:
+      "https://chromewebstore.google.com/detail/hana-wallet/jfdlamikmbghhapbgfoogdffldioobgl",
+  },
+]
 
 export function ConnectButton({ className, ...props }: ConnectButtonProps) {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
@@ -76,6 +107,98 @@ function WalletModal({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const [installWallet, setInstallWallet] = useState<WalletOption | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [availableWalletIds, setAvailableWalletIds] = useState<Set<string>>(
+    () => new Set(),
+  )
+  const setConnected = useWalletStore((state) => state.setConnected)
+  const pendingTransactionXdr = useWalletStore(
+    (state) => state.pendingTransactionXdr,
+  )
+  const setStatus = useWalletStore((state) => state.setStatus)
+
+  useEffect(() => {
+    if (!open) return
+
+    let cancelled = false
+
+    StellarWalletsKit.refreshSupportedWallets()
+      .then((wallets) => {
+        if (cancelled) return
+
+        setAvailableWalletIds(
+          new Set(
+            wallets
+              .filter((wallet) => wallet.isAvailable)
+              .map((wallet) => wallet.id),
+          ),
+        )
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAvailableWalletIds(new Set())
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) {
+      setInstallWallet(null)
+      setError(null)
+    }
+  }, [open])
+
+  async function connectWallet(wallet: WalletOption) {
+    if (!availableWalletIds.has(wallet.id)) {
+      setInstallWallet(wallet)
+      return
+    }
+
+    setError(null)
+    setStatus("connecting")
+
+    try {
+      StellarWalletsKit.setWallet(wallet.id)
+      const { address } = await StellarWalletsKit.fetchAddress()
+      setConnected(address, wallet.id)
+      onOpenChange(false)
+    } catch {
+      setStatus("error")
+      setError(`Could not connect ${wallet.name}. Please try again.`)
+    }
+  }
+
+  const sortedWalletOptions = useMemo(
+    () =>
+      [...WALLET_OPTIONS].sort((a, b) => {
+        const aAvailable = availableWalletIds.has(a.id)
+        const bAvailable = availableWalletIds.has(b.id)
+
+        if (aAvailable === bAvailable) return 0
+        return aAvailable ? -1 : 1
+      }),
+    [availableWalletIds],
+  )
+  const sep7Uri = useMemo(() => {
+    const origin =
+      typeof window === "undefined" ? "https://so4.markets" : window.location.origin
+    const callbackUrl = new URL("/", origin).toString()
+
+    if (pendingTransactionXdr) {
+      return createSep7TransactionUri({
+        callbackUrl,
+        xdr: pendingTransactionXdr,
+      })
+    }
+
+    return createSep7ConnectUri(origin)
+  }, [pendingTransactionXdr])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -86,9 +209,76 @@ function WalletModal({
           </DialogDescription>
         </DialogHeader>
 
-        <Button type="button" className="w-full justify-center">
-          Freighter
-        </Button>
+        <div className="space-y-2">
+          {sortedWalletOptions.map((wallet) => {
+            const isAvailable = availableWalletIds.has(wallet.id)
+
+            return (
+              <Button
+                key={wallet.id}
+                type="button"
+                variant={isAvailable ? "default" : "outline"}
+                className="w-full justify-between"
+                onClick={() => {
+                  void connectWallet(wallet)
+                }}
+              >
+                <span>{wallet.name}</span>
+                <span className="text-xs opacity-75">
+                  {isAvailable ? "Detected" : "Not installed"}
+                </span>
+              </Button>
+            )
+          })}
+        </div>
+
+        {installWallet && (
+          <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
+            <p className="font-medium">{installWallet.name} is not installed.</p>
+            <p className="mt-1 text-muted-foreground">
+              Install it, then return here and connect without closing this modal.
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              className="mt-3 w-full justify-center"
+              onClick={() => {
+                window.open(installWallet.installUrl, "_blank", "noopener,noreferrer")
+              }}
+            >
+              Install {installWallet.name}
+            </Button>
+          </div>
+        )}
+
+        {error && (
+          <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </p>
+        )}
+
+        <div className="space-y-3 rounded-md border border-border p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-medium">Use Mobile Wallet</p>
+              <p className="text-sm text-muted-foreground">
+                {pendingTransactionXdr
+                  ? "Scan to approve the pending transaction."
+                  : "Scan to connect from a mobile wallet."}
+              </p>
+            </div>
+            <a
+              className="inline-flex h-6 shrink-0 items-center justify-center rounded-md border border-border px-2 text-xs font-medium transition-colors hover:bg-input/50"
+              href={sep7Uri}
+            >
+              Scan to connect
+            </a>
+          </div>
+
+          <div className="flex justify-center rounded-md bg-white p-4">
+            <QRCodeSVG value={sep7Uri} size={168} level="M" />
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   )
