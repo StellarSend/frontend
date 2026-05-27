@@ -29,4 +29,7 @@ export const queryKeys = {
   // Trade history
   tradeHistory: (chainId: string, account: string, page: number) =>
     ["tradeHistory", chainId, account, page] as const,
+
+  // Funding rate + next epoch timestamp
+  fundingRate: (chainId: string) => ["fundingRate", chainId] as const,
 }
