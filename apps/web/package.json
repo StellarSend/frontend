@@ -9,7 +9,17 @@
     "preview": "vite preview",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "contracts:check:cli": "stellar --version 2>/dev/null | grep -q 'stellar 22\\.' && echo 'OK' || echo 'ERROR: stellar CLI 22.x required (see docs/contracts.md)'",
+    "contracts:gen:exchange-router": "grep -v '^#' .env.testnet | xargs stellar contract bindings typescript --contract-id \"$VITE_CONTRACT_EXCHANGE_ROUTER\" --output-dir src/lib/contracts/generated/exchange-router --overwrite",
+    "contracts:gen:synthetics-reader": "grep -v '^#' .env.testnet | xargs stellar contract bindings typescript --contract-id \"$VITE_CONTRACT_SYNTHETICS_READER\" --output-dir src/lib/contracts/generated/synthetics-reader --overwrite",
+    "contracts:gen:data-store": "grep -v '^#' .env.testnet | xargs stellar contract bindings typescript --contract-id \"$VITE_CONTRACT_DATA_STORE\" --output-dir src/lib/contracts/generated/data-store --overwrite",
+    "contracts:gen:order-vault": "grep -v '^#' .env.testnet | xargs stellar contract bindings typescript --contract-id \"$VITE_CONTRACT_ORDER_VAULT\" --output-dir src/lib/contracts/generated/order-vault --overwrite",
+    "contracts:gen:staking-router": "grep -v '^#' .env.testnet | xargs stellar contract bindings typescript --contract-id \"$VITE_CONTRACT_STAKING_ROUTER\" --output-dir src/lib/contracts/generated/staking-router --overwrite",
+    "contracts:gen:glv-router": "grep -v '^#' .env.testnet | xargs stellar contract bindings typescript --contract-id \"$VITE_CONTRACT_GLV_ROUTER\" --output-dir src/lib/contracts/generated/glv-router --overwrite",
+    "contracts:gen:vesting-router": "grep -v '^#' .env.testnet | xargs stellar contract bindings typescript --contract-id \"$VITE_CONTRACT_VESTING_ROUTER\" --output-dir src/lib/contracts/generated/vesting-router --overwrite",
+    "contracts:gen:referral-storage": "grep -v '^#' .env.testnet | xargs stellar contract bindings typescript --contract-id \"$VITE_CONTRACT_REFERRAL_STORAGE\" --output-dir src/lib/contracts/generated/referral-storage --overwrite",
+    "contracts:gen:all": "bun run contracts:gen:exchange-router && bun run contracts:gen:synthetics-reader && bun run contracts:gen:data-store && bun run contracts:gen:order-vault && bun run contracts:gen:staking-router && bun run contracts:gen:glv-router && bun run contracts:gen:vesting-router && bun run contracts:gen:referral-storage"
   },
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^2.2.0",
