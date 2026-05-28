@@ -2,28 +2,19 @@ import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Button } from "@workspace/ui/components/button"
 import { Badge } from "@workspace/ui/components/badge"
 import { useState } from "react"
-import { useOrders, type Order } from "../../hooks/useOrders"
+import { useOrders } from "../../hooks/useOrders"
 import { cancelOrder } from "../../lib/stellar"
 import { formatUsd } from "../../lib/trade-math"
-import type { OrderKey } from "@/lib/contracts/generated/exchange-router/src"
-
-function toOrderKey(order: Order): OrderKey {
-  return {
-    orderType: order.orderType,
-    account: order.account,
-    market: order.marketAddress,
-    index: 0n,
-  }
-}
 
 export function OrdersList() {
   const { data: orders = [], isLoading } = useOrders()
   const [cancelling, setCancelling] = useState<string | null>(null)
 
-  async function handleCancel(order: Order) {
-    setCancelling(order.key)
+  async function handleCancel(orderKey: string) {
+    setCancelling(orderKey)
     try {
-      await cancelOrder(order.account, toOrderKey(order))
+      // TODO: Pass real account from wallet context
+      await cancelOrder("GDUMMY...STELLAR", orderKey)
     } finally {
       setCancelling(null)
     }
@@ -85,7 +76,7 @@ export function OrdersList() {
                   size="xs"
                   variant="outline"
                   disabled={cancelling === o.key}
-                  onClick={() => void handleCancel(o)}
+                  onClick={() => void handleCancel(o.key)}
                 >
                   {cancelling === o.key ? "…" : "Cancel"}
                 </Button>

@@ -11,6 +11,9 @@ const RPC_ERROR_MESSAGES: Record<string, string> = {
   op_underfunded: "Wallet balance is too low for this operation.",
 }
 
+export const ORDER_EXECUTION_FROZEN_MESSAGE =
+  "Order execution is temporarily paused. Your order has been saved and will execute when trading resumes."
+
 const CONTRACT_ERROR_MESSAGES: Record<string, string> = {
   INSUFFICIENT_COLLATERAL: "Insufficient collateral for this position.",
   INSUFFICIENT_LIQUIDITY: "Insufficient liquidity for this trade.",
@@ -24,6 +27,7 @@ const CONTRACT_ERROR_MESSAGES: Record<string, string> = {
   POSITION_NOT_FOUND: "Position was not found.",
   SLIPPAGE_EXCEEDED: "Price moved beyond your slippage limit. Try again.",
   UNAUTHORIZED: "You are not authorized to perform this action.",
+  ORDER_EXECUTION_FROZEN: ORDER_EXECUTION_FROZEN_MESSAGE,
 }
 
 const FALLBACK_MESSAGE = "Transaction failed. Please try again."

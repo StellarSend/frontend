@@ -9,6 +9,8 @@ export type OrderType =
   | "StopLoss"
   | "Swap"
 
+export type OrderStatus = "active" | "frozen"
+
 export type Order = {
   key: string
   account: string
@@ -21,6 +23,7 @@ export type Order = {
   acceptablePrice: number
   orderType: OrderType
   isLong: boolean
+  status: OrderStatus
   createdAt: number            // unix timestamp ms
   // TODO: Add executionFee, swapPath, decreaseSwapType when live
 }
@@ -42,9 +45,14 @@ async function fetchOrders(account: string): Promise<Array<Order>> {
       acceptablePrice: 65_100,
       orderType: "LimitIncrease",
       isLong: true,
+      status: "active",
       createdAt: Date.now() - 1000 * 60 * 30,
     },
   ]
+}
+
+export function hasFrozenOrders(orders: Array<Order>): boolean {
+  return orders.some((order) => order.status === "frozen")
 }
 
 const DUMMY_ACCOUNT = "GDUMMY...STELLAR"

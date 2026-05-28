@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk"
 import { FREIGHTER_ID } from "@creit.tech/stellar-wallets-kit/modules/freighter"
 import { HANA_ID } from "@creit.tech/stellar-wallets-kit/modules/hana"
@@ -18,9 +18,6 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { createSep7ConnectUri, createSep7TransactionUri } from "../lib/sep7"
 import { useWalletStore } from "../store/wallet-store"
-import { useBalance } from "../hooks/useBalance"
-import { useWallet } from "@/app/providers"
-import { NETWORK } from "@/app/config/network"
 import type { ComponentProps } from "react"
 
 type ConnectButtonProps = Omit<
@@ -91,89 +88,17 @@ function AccountBadge({
   address: string
   className?: string
 } & Omit<ConnectButtonProps, "className">) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const balance = useBalance()
-  const { disconnect } = useWallet()
-  const isTestnet = NETWORK.name === "testnet"
-
-  useEffect(() => {
-    if (!open) return
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [open])
-
   return (
-    <div ref={ref} className="relative">
-      <Button
-        {...props}
-        type="button"
-        variant="outline"
-        aria-label={`Connected wallet ${formatAddress(address)}`}
-        aria-expanded={open}
-        className={cn("w-full justify-start gap-2 sm:w-auto", className)}
-        onClick={() => setOpen(!open)}
-      >
-        <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
-        <span className="font-mono">{formatAddress(address)}</span>
-      </Button>
-
-      {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-md border bg-popover p-3 shadow-md">
-          <p className="text-xs text-muted-foreground">Connected</p>
-          <p className="mt-1 truncate font-mono text-sm" title={address}>
-            {address}
-          </p>
-
-          <div className="mt-3 rounded-md bg-muted/50 px-2 py-1.5 text-sm">
-            <span className="text-muted-foreground">XLM Balance: </span>
-            <span className="font-medium">
-              {balance ? `${balance.xlm.toFixed(2)}` : "—"}
-            </span>
-          </div>
-
-          <div className="mt-2 space-y-0.5">
-            <button
-              type="button"
-              className="w-full rounded px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent"
-              onClick={() => {
-                navigator.clipboard.writeText(address)
-                setOpen(false)
-              }}
-            >
-              Copy Address
-            </button>
-
-            {isTestnet && (
-              <a
-                href="https://friendbot.stellar.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full rounded px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent"
-              >
-                Testnet Faucet
-              </a>
-            )}
-
-            <button
-              type="button"
-              className="w-full rounded px-2 py-1.5 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
-              onClick={() => {
-                disconnect()
-                setOpen(false)
-              }}
-            >
-              Disconnect
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+    <Button
+      {...props}
+      type="button"
+      variant="outline"
+      aria-label={`Connected wallet ${formatAddress(address)}`}
+      className={cn("w-full justify-start gap-2 sm:w-auto", className)}
+    >
+      <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
+      <span className="font-mono">{formatAddress(address)}</span>
+    </Button>
   )
 }
 
