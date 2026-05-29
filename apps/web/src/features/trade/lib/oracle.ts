@@ -1,4 +1,4 @@
-// Oracle price feed — Binance public REST as primary, GMX oracle as automatic fallback.
+// Oracle price feed — Pyth Hermes as primary on-chain source, Binance REST for display fallback.
 //
 // Candle format differences:
 //   Binance klines → oldest-first, prices as strings, times in milliseconds
@@ -8,7 +8,9 @@
 
 import { ENV } from "../../../app/config/env"
 import { formatPct } from "@/shared/lib/format"
+import { fetchPythAttestations } from "./pyth"
 
+export type PriceSource = "pyth" | "binance" | "gmx" | "fallback"
 
 export type TokenPrice = {
   symbol: string
@@ -16,6 +18,7 @@ export type TokenPrice = {
   minPrice: number
   maxPrice: number
   updatedAt: number   // ms
+  source: PriceSource
 }
 
 export type OhlcBar = {
@@ -57,6 +60,8 @@ export const BINANCE_PERIOD: Record<string, string> = {
 const BINANCE_BASE = "https://api.binance.com"
 const GMX_BASE = ENV.ORACLE_URL
 
+const TRACKED_SYMBOLS = ["BTC", "ETH", "XLM", "USDC"] as const
+
 // GMX v2 price decimals: rawPrice = usdPrice × 10^(30 − tokenDecimals)
 const TOKEN_DECIMALS: Record<string, number> = {
   BTC: 8, ETH: 18, XLM: 7, USDC: 6, USDT: 6,
@@ -73,13 +78,41 @@ function pctStr(pct: number): string {
   return formatPct(pct)
 }
 
-// ─── fetchTokenPrices ────────────────────────────────────────────────────────
+// ─── Binance display fallback (not used for on-chain tx) ───────────────────────
 
 type BinanceBookTicker = {
   symbol: string
   bidPrice: string
   askPrice: string
 }
+
+async function fetchBinanceDisplayPrices(): Promise<Map<string, TokenPrice>> {
+  const syms = JSON.stringify(Object.values(BINANCE_SYMBOL))
+  const res = await fetch(
+    `${BINANCE_BASE}/api/v3/ticker/bookTicker?symbols=${encodeURIComponent(syms)}`,
+  )
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const tickers = (await res.json()) as Array<BinanceBookTicker>
+
+  const liveMap = new Map<string, TokenPrice>()
+  for (const t of tickers) {
+    const sym = Object.entries(BINANCE_SYMBOL).find(([, v]) => v === t.symbol)?.[0]
+    if (!sym) continue
+    const bid = parseFloat(t.bidPrice)
+    const ask = parseFloat(t.askPrice)
+    liveMap.set(sym, {
+      symbol: sym,
+      address: sym,
+      minPrice: bid,
+      maxPrice: ask,
+      updatedAt: Date.now(),
+      source: "binance",
+    })
+  }
+  return liveMap
+}
+
+// ─── fetchTokenPrices ────────────────────────────────────────────────────────
 
 type GmxTicker = {
   minPrice: string
@@ -90,30 +123,44 @@ type GmxTicker = {
 }
 
 export async function fetchTokenPrices(): Promise<Array<TokenPrice>> {
-  // Try Binance first
-  try {
-    const syms = JSON.stringify(Object.values(BINANCE_SYMBOL))
-    const res = await fetch(
-      `${BINANCE_BASE}/api/v3/ticker/bookTicker?symbols=${encodeURIComponent(syms)}`,
-    )
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const tickers = (await res.json()) as Array<BinanceBookTicker>
+  const pythMap = new Map<string, TokenPrice>()
 
-    const liveMap = new Map<string, TokenPrice>()
-    for (const t of tickers) {
-      // Reverse map BTCUSDT → BTC
-      const sym = Object.entries(BINANCE_SYMBOL).find(([, v]) => v === t.symbol)?.[0]
-      if (!sym) continue
-      const bid = parseFloat(t.bidPrice)
-      const ask = parseFloat(t.askPrice)
-      liveMap.set(sym, { symbol: sym, address: sym, minPrice: bid, maxPrice: ask, updatedAt: Date.now() })
+  try {
+    const attestations = await fetchPythAttestations([...TRACKED_SYMBOLS])
+    for (const a of attestations) {
+      pythMap.set(a.symbol, {
+        symbol: a.symbol,
+        address: a.symbol,
+        minPrice: a.minPrice,
+        maxPrice: a.maxPrice,
+        updatedAt: a.publishTimeMs,
+        source: "pyth",
+      })
     }
-    return DUMMY_PRICES.map((d) => liveMap.get(d.symbol) ?? d)
+  } catch {
+    // Fall through — Binance display fallback below
+  }
+
+  if (pythMap.size > 0) {
+    let binanceMap = new Map<string, TokenPrice>()
+    try {
+      binanceMap = await fetchBinanceDisplayPrices()
+    } catch {
+      // Pyth-only is acceptable
+    }
+
+    return DUMMY_PRICES.map((d) => pythMap.get(d.symbol) ?? binanceMap.get(d.symbol) ?? d)
+  }
+
+  // Display fallback: Binance REST (not used for on-chain transactions)
+  try {
+    const binanceMap = await fetchBinanceDisplayPrices()
+    return DUMMY_PRICES.map((d) => binanceMap.get(d.symbol) ?? d)
   } catch {
     // Fall through to GMX
   }
 
-  // Fallback: GMX oracle
+  // Last resort: GMX oracle
   try {
     const res = await fetch(`${GMX_BASE}/prices/tickers`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -127,6 +174,7 @@ export async function fetchTokenPrices(): Promise<Array<TokenPrice>> {
         minPrice: parseGmxPrice(t.minPrice, t.tokenSymbol),
         maxPrice: parseGmxPrice(t.maxPrice, t.tokenSymbol),
         updatedAt: t.updatedAt,
+        source: "gmx",
       })
     }
     return DUMMY_PRICES.map((d) => liveMap.get(d.symbol) ?? d)
@@ -256,10 +304,10 @@ export async function fetch24hPriceDelta(symbol: string): Promise<PriceDelta24h 
 // ─── Fallback dummy data ─────────────────────────────────────────────────────
 
 const DUMMY_PRICES: Array<TokenPrice> = [
-  { symbol: "BTC",  address: "BTC",  minPrice: 80_000,  maxPrice: 80_050,  updatedAt: Date.now() },
-  { symbol: "ETH",  address: "ETH",  minPrice: 2_300,   maxPrice: 2_302,   updatedAt: Date.now() },
-  { symbol: "XLM",  address: "XLM",  minPrice: 0.167,   maxPrice: 0.1672,  updatedAt: Date.now() },
-  { symbol: "USDC", address: "USDC", minPrice: 0.9998,  maxPrice: 1.0002,  updatedAt: Date.now() },
+  { symbol: "BTC",  address: "BTC",  minPrice: 80_000,  maxPrice: 80_050,  updatedAt: Date.now(), source: "fallback" },
+  { symbol: "ETH",  address: "ETH",  minPrice: 2_300,   maxPrice: 2_302,   updatedAt: Date.now(), source: "fallback" },
+  { symbol: "XLM",  address: "XLM",  minPrice: 0.167,   maxPrice: 0.1672,  updatedAt: Date.now(), source: "fallback" },
+  { symbol: "USDC", address: "USDC", minPrice: 0.9998,  maxPrice: 1.0002,  updatedAt: Date.now(), source: "fallback" },
 ]
 
 const DUMMY_24H: Record<string, PriceDelta24h> = {

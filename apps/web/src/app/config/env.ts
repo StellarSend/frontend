@@ -54,6 +54,8 @@ export type Env = {
   HORIZON_URL: string
   /** Oracle / price-feed base URL. Falls back to GMX infra if unset. */
   ORACLE_URL: string
+  /** Pyth Hermes endpoint for on-chain price attestations. */
+  PYTH_HERMES_URL: string
   /** Soroban contract addresses, keyed by role. */
   CONTRACTS: EnvContracts
 }
@@ -76,6 +78,11 @@ export const ENV: Env = {
   ORACLE_URL: optionalEnv(
     import.meta.env.VITE_ORACLE_URL,
     "https://arbitrum-api.gmxinfra.io",
+  ),
+
+  PYTH_HERMES_URL: optionalEnv(
+    import.meta.env.VITE_PYTH_HERMES_URL,
+    "https://hermes.pyth.network",
   ),
 
   CONTRACTS: {

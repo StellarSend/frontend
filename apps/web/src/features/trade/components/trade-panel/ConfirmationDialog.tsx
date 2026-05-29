@@ -16,6 +16,7 @@ import { getEstimatedEntryPrice, getPriceImpactPct } from "../../lib/pricing"
 import { estimateFee } from "@/lib/soroban/simulate"
 import { buildBatchOrderTransaction, buildCreateOrderTransaction } from "@/lib/contracts/exchange-router-client"
 import { toCreateOrderParams, toDecreaseOrderParams, encodeTokenAmount } from "../../lib/order-encoding"
+import { fetchPriceUpdateDataForMarket } from "../../lib/pyth"
 import { checkAllowance, buildApproveTransaction } from "@/lib/contracts/sac-token-client"
 import { prepareAndSign } from "@/lib/soroban/tx-builder"
 import { submitTx } from "@/shared/hooks/useTxSubmit"
@@ -123,12 +124,17 @@ export function ConfirmationDialog({ open, onClose, tradeState, sizeUsd, entryPr
           leverage,
         }
 
+        const priceUpdateData = await fetchPriceUpdateDataForMarket(
+          tradeState.marketAddress,
+          toTokenAddress,
+        )
+
         const tx = sidecarCreateOrders.length
           ? await buildBatchOrderTransaction(account, [
-              { actionType: "createOrder", orderParams: toCreateOrderParams(parentOrder), cancelKey: null },
-              ...sidecarCreateOrders.map((order) => ({ actionType: "createOrder" as const, orderParams: toDecreaseOrderParams(order), cancelKey: null })),
+              { actionType: "createOrder", orderParams: toCreateOrderParams(parentOrder, priceUpdateData), cancelKey: null },
+              ...sidecarCreateOrders.map((order) => ({ actionType: "createOrder" as const, orderParams: toDecreaseOrderParams(order, priceUpdateData), cancelKey: null })),
             ])
-          : await buildCreateOrderTransaction(toCreateOrderParams(parentOrder))
+          : await buildCreateOrderTransaction(toCreateOrderParams(parentOrder, priceUpdateData))
 
         const fee = await estimateFee(tx)
         setNetworkFee(fee.total)

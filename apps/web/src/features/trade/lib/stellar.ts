@@ -14,6 +14,7 @@ import { parseSorobanError } from "@/lib/soroban/errors"
 import { walletKit } from "@/features/wallet/lib/wallet-kit"
 import { queryKeys } from "./query-keys"
 import { toCreateOrderParams, toDecreaseOrderParams, toSwapOrderParams } from "./order-encoding"
+import { fetchPriceUpdateDataForMarket, fetchPriceUpdateDataForSwap } from "./pyth"
 import type { OrderKey, BatchOperation } from "@/lib/contracts/generated/exchange-router/src"
 import { submitTx } from "@/shared/hooks/useTxSubmit"
 
@@ -73,7 +74,13 @@ export async function createIncreaseOrder(params: IncreaseOrderParams): Promise<
 
   return submitTx(
     async () => {
-      const tx = await buildCreateOrderTransaction(toCreateOrderParams(params))
+      const priceUpdateData = await fetchPriceUpdateDataForMarket(
+        params.marketAddress,
+        params.marketAddress,
+      )
+      const tx = await buildCreateOrderTransaction(
+        toCreateOrderParams(params, priceUpdateData),
+      )
       return prepareAndSign(tx, walletKit, NETWORK.networkPassphrase)
     },
     {
@@ -96,7 +103,13 @@ export async function createDecreaseOrder(params: DecreaseOrderParams): Promise<
 
   return submitTx(
     async () => {
-      const tx = await buildCreateOrderTransaction(toDecreaseOrderParams(params))
+      const priceUpdateData = await fetchPriceUpdateDataForMarket(
+        params.marketAddress,
+        params.marketAddress,
+      )
+      const tx = await buildCreateOrderTransaction(
+        toDecreaseOrderParams(params, priceUpdateData),
+      )
       return prepareAndSign(tx, walletKit, NETWORK.networkPassphrase)
     },
     {
@@ -123,7 +136,10 @@ export async function createSwapOrder(params: SwapOrderParams): Promise<string> 
 
   return submitTx(
     async () => {
-      const tx = await buildSwapOrderTransaction(toSwapOrderParams(params))
+      const priceUpdateData = await fetchPriceUpdateDataForSwap(params.fromToken, params.toToken)
+      const tx = await buildSwapOrderTransaction(
+        toSwapOrderParams(params, priceUpdateData),
+      )
       return prepareAndSign(tx, walletKit, NETWORK.networkPassphrase)
     },
     {
@@ -206,10 +222,20 @@ export async function sendBatchOrderTxn(account: string, params: BatchOrderParam
 
   return submitTx(
     async () => {
+      const marketAddress =
+        params.createOrders?.[0] && "marketAddress" in params.createOrders[0]
+          ? params.createOrders[0].marketAddress
+          : ""
+      const priceUpdateData = marketAddress
+        ? await fetchPriceUpdateDataForMarket(marketAddress, marketAddress)
+        : []
+
       const operations: Array<BatchOperation> = [
         ...(params.createOrders ?? []).map((p) => ({
           actionType: "createOrder" as const,
-          orderParams: isDecreaseOrder(p) ? toDecreaseOrderParams(p) : toCreateOrderParams(p),
+          orderParams: isDecreaseOrder(p)
+            ? toDecreaseOrderParams(p, priceUpdateData)
+            : toCreateOrderParams(p, priceUpdateData),
           cancelKey: null,
         })),
         ...(params.cancelOrderKeys ?? []).map((key) => ({

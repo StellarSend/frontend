@@ -26,6 +26,18 @@ export interface CreateOrderParams {
   orderType: string
   executionFee: bigint
   receiveToken: string | null
+  priceUpdateData: Array<Uint8Array>
+}
+
+export interface SwapOrderParams {
+  account: string
+  fromToken: string
+  toToken: string
+  amountIn: bigint
+  minAmountOut: bigint
+  swapPath: Array<string>
+  executionFee: bigint
+  priceUpdateData: Array<Uint8Array>
 }
 
 export interface BatchOperation {
@@ -74,6 +86,54 @@ function opt<T>(val: T | null, fn: (v: T) => xdr.ScVal): xdr.ScVal {
   return val !== null ? xdr.ScVal.scvVec([fn(val)]) : xdr.ScVal.scvVoid()
 }
 
+function priceUpdateDataVec(updates: Array<Uint8Array>): xdr.ScVal {
+  return xdr.ScVal.scvVec(
+    updates.map((chunk) => xdr.ScVal.scvBytes(Buffer.from(chunk))),
+  )
+}
+
+/** Encode args for ExchangeRouter.createOrder (includes Pyth priceUpdateData). */
+export function createOrderArgs(params: CreateOrderParams): Array<xdr.ScVal> {
+  return [
+    address(params.account),
+    address(params.market),
+    address(params.collateralToken),
+    i128(params.collateralAmount),
+    i128(params.sizeDelta),
+    xdr.ScVal.scvBool(params.isLong),
+    i128(params.acceptablePrice),
+    opt(params.triggerPrice, i128),
+    symbol(params.orderType),
+    i128(params.executionFee),
+    opt(params.receiveToken, address),
+    priceUpdateDataVec(params.priceUpdateData),
+  ]
+}
+
+/** Encode args for ExchangeRouter.createSwapOrder (includes Pyth priceUpdateData). */
+export function swapOrderArgs(params: SwapOrderParams): Array<xdr.ScVal> {
+  return [
+    address(params.account),
+    address(params.fromToken),
+    address(params.toToken),
+    i128(params.amountIn),
+    i128(params.minAmountOut),
+    xdr.ScVal.scvVec(params.swapPath.map(address)),
+    i128(params.executionFee),
+    priceUpdateDataVec(params.priceUpdateData),
+  ]
+}
+
+/** Encode args for ExchangeRouter.cancelOrder. */
+export function cancelOrderArgs(account: string, orderKey: OrderKey): Array<xdr.ScVal> {
+  return [
+    symbol(orderKey.orderType),
+    address(account),
+    address(orderKey.market),
+    u64(orderKey.index),
+  ]
+}
+
 // ── Client ───────────────────────────────────────────────────────────────────
 
 export interface ClientOptions {
@@ -103,20 +163,7 @@ export class Client {
   }
 
   createOrder(params: CreateOrderParams): Promise<string> {
-    return this.buildTx(
-      "createOrder",
-      address(params.account),
-      address(params.market),
-      address(params.collateralToken),
-      i128(params.collateralAmount),
-      i128(params.sizeDelta),
-      xdr.ScVal.scvBool(params.isLong),
-      i128(params.acceptablePrice),
-      opt(params.triggerPrice, i128),
-      symbol(params.orderType),
-      i128(params.executionFee),
-      opt(params.receiveToken, address),
-    )
+    return this.buildTx("createOrder", ...createOrderArgs(params))
   }
 
   cancelOrder(orderKey: OrderKey): Promise<string> {

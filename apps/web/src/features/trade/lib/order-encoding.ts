@@ -37,7 +37,10 @@ export function encodeExecutionFeeXlm(xlm = DEFAULT_EXECUTION_FEE_XLM): bigint {
 }
 
 /** Map UI increase-order params to ExchangeRouter.createOrder contract params. */
-export function toCreateOrderParams(params: IncreaseOrderParams): CreateOrderParams {
+export function toCreateOrderParams(
+  params: IncreaseOrderParams,
+  priceUpdateData: Array<Uint8Array>,
+): CreateOrderParams {
   const market = getMarket(params.marketAddress)
   const indexToken = market?.indexTokenAddress ?? params.marketAddress
 
@@ -58,11 +61,15 @@ export function toCreateOrderParams(params: IncreaseOrderParams): CreateOrderPar
     orderType: params.orderType,
     executionFee: encodeExecutionFeeXlm(),
     receiveToken: null,
+    priceUpdateData,
   }
 }
 
 /** Map UI decrease-order params to ExchangeRouter.createOrder contract params. */
-export function toDecreaseOrderParams(params: DecreaseOrderParams): CreateOrderParams {
+export function toDecreaseOrderParams(
+  params: DecreaseOrderParams,
+  priceUpdateData: Array<Uint8Array>,
+): CreateOrderParams {
   const market = getMarket(params.marketAddress)
   const indexToken = market?.indexTokenAddress ?? params.marketAddress
 
@@ -83,11 +90,15 @@ export function toDecreaseOrderParams(params: DecreaseOrderParams): CreateOrderP
     orderType: params.orderType,
     executionFee: encodeExecutionFeeXlm(),
     receiveToken: params.receiveToken,
+    priceUpdateData,
   }
 }
 
 /** Map UI swap-order params to ExchangeRouter.createSwapOrder contract params. */
-export function toSwapOrderParams(params: SwapOrderParams): ContractSwapParams {
+export function toSwapOrderParams(
+  params: SwapOrderParams,
+  priceUpdateData: Array<Uint8Array>,
+): ContractSwapParams {
   return {
     account: params.account,
     fromToken: params.fromToken,
@@ -96,5 +107,6 @@ export function toSwapOrderParams(params: SwapOrderParams): ContractSwapParams {
     minAmountOut: encodeTokenAmount(params.minAmountOut, params.toToken),
     swapPath: params.swapPath,
     executionFee: encodeExecutionFeeXlm(),
+    priceUpdateData,
   }
 }
