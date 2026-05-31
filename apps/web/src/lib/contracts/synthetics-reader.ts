@@ -1,8 +1,8 @@
 import { CONTRACTS } from "@/app/config/contracts"
 import { NETWORK } from "@/app/config/network"
-import { Client, type MarketInfo, type OrderInfo, type PositionInfo } from "./generated/synthetics-reader/src"
+import { Client, type MarketInfo, type OrderInfo, type PositionInfo, type PoolAmounts } from "./generated/synthetics-reader/src"
 
-export type { MarketInfo, OrderInfo, PositionInfo }
+export type { MarketInfo, OrderInfo, PositionInfo, PoolAmounts }
 
 /**
  * Thin wrapper around the generated SyntheticsReader Soroban client.
@@ -30,6 +30,10 @@ export class SyntheticsReaderClient {
 
   getPositionInfo(account: string, marketAddress: string, isLong: boolean): Promise<PositionInfo> {
     return this.client.getPositionInfo(account, marketAddress, isLong)
+  }
+
+  getMarketPoolAmounts(marketAddress: string): Promise<PoolAmounts> {
+    return this.client.getMarketPoolAmounts(marketAddress)
   }
 }
 

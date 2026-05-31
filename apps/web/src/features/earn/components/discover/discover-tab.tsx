@@ -3,9 +3,9 @@ import { cn } from "@workspace/ui/lib/utils"
 import { Button } from "@workspace/ui/components/button"
 import { usePoolsApy } from "../../hooks/use-earn-data"
 import { depositGLV, depositGM } from "../../lib/earn"
-import { formatPct, formatUsd } from "@/shared/lib/format"
+import { formatPct, formatUsd, formatToken } from "@/shared/lib/format"
 import { useMarketPoolAmounts } from "../../hooks/useMarketPoolAmounts"
-import { useGLVVaultData, useGMPoolData } from "../../queries"
+import { useGLVVaultData, useGMPoolData, useStakingInfo } from "../../queries"
 import { fromSorobanAmount } from "@/shared/lib/bignum"
 
 type Filter = "all" | "glv" | "gm"
@@ -92,6 +92,7 @@ function SortButton({ active, onClick, children }: SortButtonProps) {
 
 export function DiscoverTab() {
   const { gmPools, glvVaults } = usePoolsApy()
+  const { data: stakingInfo } = useStakingInfo()
   const [filter, setFilter] = useState<Filter>("all")
   const [sort, setSort] = useState<SortKey>("apy")
   const [pending, setPending] = useState<string | null>(null)
@@ -167,6 +168,31 @@ export function DiscoverTab() {
           </SortButton>
         </div>
       </div>
+
+      {/* Your deposit summary */}
+      {stakingInfo && (stakingInfo.stakedSO4 > 0n || stakingInfo.stakedEsSO4 > 0n || stakingInfo.stakedMultiplierPoints > 0n) && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="mb-2 text-[12px] font-semibold text-muted-foreground">Your Deposit</p>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <div>
+              <p className="text-[10px] text-muted-foreground">Staked SO4</p>
+              <p className="text-[13px] font-medium tabular-nums">{formatToken(fromSorobanAmount(stakingInfo.stakedSO4, 7), "SO4")}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground">Staked esSO4</p>
+              <p className="text-[13px] font-medium tabular-nums">{formatToken(fromSorobanAmount(stakingInfo.stakedEsSO4, 7), "esSO4")}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground">Multiplier Points</p>
+              <p className="text-[13px] font-medium tabular-nums">{formatToken(fromSorobanAmount(stakingInfo.stakedMultiplierPoints, 7), "MP")}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground">Pending Rewards</p>
+              <p className="text-[13px] font-medium tabular-nums">{formatToken(fromSorobanAmount(stakingInfo.pendingEsSO4Rewards, 7), "esSO4")}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pool table */}
       <div className="overflow-hidden rounded-xl border border-border">

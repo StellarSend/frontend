@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { fromSorobanAmount } from "@/shared/lib/bignum"
 import { queryKeys } from "@/shared/lib/query-keys"
+import { SyntheticsReaderClient } from "@/lib/contracts/synthetics-reader"
+
+const syntheticsReader = new SyntheticsReaderClient()
 
 type MarketPoolAmounts = {
   longTokenAmount: number
@@ -9,14 +12,11 @@ type MarketPoolAmounts = {
 }
 
 async function fetchMarketPoolAmounts(marketAddress: string): Promise<MarketPoolAmounts> {
-  // TODO: replace with SyntheticsReader.getMarketPoolAmounts(marketAddress).
-  const longRaw = marketAddress.includes("BTC") ? 12_500_0000000n : marketAddress.includes("ETH") ? 23_400_0000000n : 89_000_0000000n
-  const shortRaw = marketAddress.includes("BTC") ? 8_200_0000000n : marketAddress.includes("ETH") ? 11_100_0000000n : 7_600_0000000n
-
+  const amounts = await syntheticsReader.getMarketPoolAmounts(marketAddress)
   return {
-    longTokenAmount: fromSorobanAmount(longRaw, 7),
-    shortTokenAmount: fromSorobanAmount(shortRaw, 7),
-    poolValueUsd: fromSorobanAmount(longRaw + shortRaw, 7),
+    longTokenAmount: fromSorobanAmount(amounts.longTokenAmount, 7),
+    shortTokenAmount: fromSorobanAmount(amounts.shortTokenAmount, 7),
+    poolValueUsd: fromSorobanAmount(amounts.poolValueUsd, 7),
   }
 }
 

@@ -371,7 +371,7 @@ function WalletModal({
             </a>
           </div>
 
-          <div className="flex justify-center rounded-md bg-white p-4">
+          <div className="flex justify-center rounded-md bg-popover p-4">
             <QRCodeSVG value={sep7Uri} size={168} level="M" />
           </div>
         </div>

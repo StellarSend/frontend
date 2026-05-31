@@ -68,6 +68,10 @@ export async function createAffiliateCode(account: string, code: string): Promis
   }
 
   const normalized = code.toUpperCase().trim()
+  const validationError = validateReferralCode(code)
+  if (validationError) {
+    throw new Error(validationError)
+  }
 
   return submitTx(
     async () => {
@@ -126,7 +130,7 @@ export function validateReferralCode(code: string): string | null {
   const upper = code.toUpperCase().trim()
   if (!upper) return "Code is required"
   if (upper.length < 3) return "Minimum 3 characters"
-  if (upper.length > 16) return "Maximum 16 characters"
+  if (upper.length > 20) return "Maximum 20 characters"
   if (!/^[A-Z0-9_]+$/.test(upper)) return "Only letters, numbers, and underscores allowed"
   return null
 }

@@ -11,11 +11,13 @@ import {
   buildStakeSO4Transaction,
   buildUnstakeSO4Transaction,
   buildClaimRewardsTransaction,
+  buildCompoundTransaction,
 } from "@/lib/contracts/staking-router"
 import {
   buildCreateDepositTransaction,
   buildCreateWithdrawalTransaction,
 } from "@/lib/contracts/exchange-router-client"
+import { buildDepositForVestingTransaction } from "@/lib/contracts/vesting-router"
 import {
   createDeposit as createGlvDeposit,
   createWithdrawal as createGlvWithdrawal,
@@ -232,12 +234,43 @@ export async function claimRewards(account: string): Promise<string> {
   )
 }
 
-export async function compoundRewards(_account: string): Promise<string> {
-  return runMockWrite("Compounding rewards...", "Rewards compounded", 1200)
+export async function compoundRewards(account: string): Promise<string> {
+  if (!isValidAccount(account)) throw new Error("Connect your wallet before compounding rewards.")
+
+  return submitTx(
+    async () => {
+      const tx = await buildCompoundTransaction(account)
+      return prepareAndSign(tx, walletKit, NETWORK.networkPassphrase)
+    },
+    {
+      loadingMessage: "Compounding rewards...",
+      successMessage: "Rewards compounded successfully",
+      successDescription: (hash) => `Tx: ${hash.slice(0, 8)}...`,
+      onSuccess: () => invalidateStakingQueries(account),
+      onError: parseSorobanError,
+    },
+  )
 }
 
-export async function vestEsSO4(_account: string, _amount: number): Promise<string> {
-  return runMockWrite("Starting esSO4 vesting...", "Vesting started")
+export async function vestEsSO4(account: string, amount: number): Promise<string> {
+  if (!isValidAccount(account)) throw new Error("Connect your wallet before vesting.")
+  if (!(amount > 0)) throw new Error("Enter an amount of esSO4 to vest.")
+
+  const vestAmount = toSorobanAmount(amount, SO4_DECIMALS)
+
+  return submitTx(
+    async () => {
+      const tx = await buildDepositForVestingTransaction(account, vestAmount)
+      return prepareAndSign(tx, walletKit, NETWORK.networkPassphrase)
+    },
+    {
+      loadingMessage: `Starting vesting for ${amount} esSO4...`,
+      successMessage: "Vesting started successfully",
+      successDescription: (hash) => `Tx: ${hash.slice(0, 8)}...`,
+      onSuccess: () => invalidateStakingQueries(account),
+      onError: parseSorobanError,
+    },
+  )
 }
 
 export function buySO4(): void {

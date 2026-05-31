@@ -5,6 +5,7 @@ import { Skeleton } from "@workspace/ui/components/skeleton"
 import { useUserSO4Stats } from "../../hooks/use-earn-data"
 import { compoundRewards, vestEsSO4 } from "../../lib/earn"
 import { formatToken } from "@/shared/lib/format"
+import { useWalletStore } from "@/features/wallet/store/wallet-store"
 
 
 
@@ -58,24 +59,26 @@ function StatRow({
 
 export function AdditionalOpportunitiesTab() {
   const { data: so4Stats, isLoading } = useUserSO4Stats()
+  const { address } = useWalletStore()
   const [vestPending, setVestPending] = useState(false)
   const [compoundPending, setCompoundPending] = useState(false)
 
   async function handleVest() {
+    if (!address) return
     setVestPending(true)
     try {
       // TODO: open vesting modal with amount input + confirmation
-      await vestEsSO4("DUMMY_ACCOUNT", so4Stats?.esSO4Balance ?? 0)
+      await vestEsSO4(address, so4Stats?.esSO4Balance ?? 0)
     } finally {
       setVestPending(false)
     }
   }
 
   async function handleCompound() {
+    if (!address) return
     setCompoundPending(true)
     try {
-      // TODO: pass real wallet account from wallet context
-      await compoundRewards("DUMMY_ACCOUNT")
+      await compoundRewards(address)
     } finally {
       setCompoundPending(false)
     }

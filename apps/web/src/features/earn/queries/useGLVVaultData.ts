@@ -2,6 +2,10 @@ import { useQuery } from "@tanstack/react-query"
 import { GLV_VAULTS, GM_POOLS } from "../data/pools"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
 import { queryKeys } from "@/shared/lib/query-keys"
+import { SyntheticsReaderClient } from "@/lib/contracts/synthetics-reader"
+import { fromSorobanAmount } from "@/shared/lib/bignum"
+
+const syntheticsReader = new SyntheticsReaderClient()
 
 export type GLVPoolAllocation = {
   poolId: string
@@ -37,27 +41,38 @@ export function useGLVVaultData(glvAddress: string) {
       const vault = GLV_VAULTS.find((entry) => entry.id === glvAddress)
 
       if (!vault) {
-        return {
-          apr: 0,
-          tvlUsd: 0,
-          underlyingPoolAllocations: [],
-          userGlvBalance: 0n,
-        }
+        return { apr: 0, tvlUsd: 0, underlyingPoolAllocations: [], userGlvBalance: 0n }
       }
 
-      const underlyingPools = vault.underlyingPools.flatMap((poolId) => {
+      let totalTvl = 0
+      const underlyingPoolAllocations: Array<GLVPoolAllocation> = []
+
+      for (const poolId of vault.underlyingPools) {
         const pool = GM_POOLS.find((entry) => entry.id === poolId)
-        return pool ? [pool] : []
-      })
-      const totalTvl = underlyingPools.reduce((sum, pool) => sum + pool.tvlUsd, 0)
+        if (!pool) continue
+
+        let poolTvl = pool.tvlUsd
+        try {
+          const amounts = await syntheticsReader.getMarketPoolAmounts(pool.marketAddress)
+          const val = fromSorobanAmount(amounts.poolValueUsd, 7)
+          if (val > 0) poolTvl = val
+        } catch {
+          // fall back to static value
+        }
+
+        totalTvl += poolTvl
+        underlyingPoolAllocations.push({ poolId: pool.id, allocationPct: 0 })
+      }
+
+      const allocations = underlyingPoolAllocations.map((a) => ({
+        ...a,
+        allocationPct: totalTvl > 0 ? (GM_POOLS.find((p) => p.id === a.poolId)?.tvlUsd ?? 0) / totalTvl * 100 : 0,
+      }))
 
       return {
         apr: vault.apy,
-        tvlUsd: vault.tvlUsd,
-        underlyingPoolAllocations: underlyingPools.map((pool) => ({
-          poolId: pool.id,
-          allocationPct: totalTvl > 0 ? (pool.tvlUsd / totalTvl) * 100 : 0,
-        })),
+        tvlUsd: vault.tvlUsd > 0 ? vault.tvlUsd : totalTvl,
+        underlyingPoolAllocations: allocations,
         userGlvBalance: estimateWalletBalance(
           status === "connected" ? address : null,
           vault.id,
