@@ -25,7 +25,9 @@ function computeFundingRatePerHour(marketAddress: string): number {
   const market = MARKETS.find((m) => m.address === marketAddress)
   if (!market) return BASE_FUNDING_RATE_PER_HOUR
 
-  const variation = ((hashString(market.address) % 2001) / 1000 - 1) * FUNDING_VARIANCE_PER_MARKET
+  const variation =
+    ((hashString(market.address) % 2001) / 1000 - 1) *
+    FUNDING_VARIANCE_PER_MARKET
   return BASE_FUNDING_RATE_PER_HOUR + variation
 }
 
@@ -35,7 +37,9 @@ function computeNextEpoch(): number {
   return now - elapsed + FUNDING_INTERVAL_MS
 }
 
-async function fetchFundingRate(marketAddress: string): Promise<FundingRateInfo> {
+async function fetchFundingRate(
+  marketAddress: string
+): Promise<FundingRateInfo> {
   // TODO: replace with on-chain DataStore read once contracts are deployed
   return {
     ratePerHour: computeFundingRatePerHour(marketAddress),
@@ -45,8 +49,8 @@ async function fetchFundingRate(marketAddress: string): Promise<FundingRateInfo>
 
 export function useFundingRate(marketAddress: string = DEFAULT_MARKET_ADDRESS) {
   return useQuery<FundingRateInfo>({
-    queryKey: queryKeys.trade.fundingRate("stellar-mainnet"),
-    queryFn: fetchFundingRate,
+    queryKey: queryKeys.trade.fundingRate(CHAIN_ID, marketAddress),
+    queryFn: () => fetchFundingRate(marketAddress),
     staleTime: 60_000,
     refetchInterval: 60_000,
   })

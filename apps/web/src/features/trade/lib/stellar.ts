@@ -89,10 +89,9 @@ export async function createIncreaseOrder(params: IncreaseOrderParams): Promise<
       successDescription: (hash) => `Tx: ${hash.slice(0, 8)}...`,
       onSuccess: (hash) => {
         void invalidateTradeQueries(params.account)
-        window.open(explorerTxUrl(hash), "_blank", "noopener,noreferrer")
       },
       onError: parseSorobanError,
-    },
+    }
   )
 }
 
@@ -119,7 +118,7 @@ export async function createDecreaseOrder(params: DecreaseOrderParams): Promise<
       onSuccess: () =>
         queryClient.invalidateQueries({ queryKey: queryKeys.trade.positions(CHAIN_ID, params.account) }),
       onError: parseSorobanError,
-    },
+    }
   )
 }
 
@@ -152,7 +151,7 @@ export async function createSwapOrder(params: SwapOrderParams): Promise<string> 
           queryKey: queryKeys.trade.tokenBalances(CHAIN_ID, params.account),
         }),
       onError: parseSorobanError,
-    },
+    }
   )
 }
 
@@ -170,9 +169,12 @@ export async function cancelOrder(account: string, orderKey: OrderKey): Promise<
       loadingMessage: "Cancelling order...",
       successMessage: "Order cancelled",
       successDescription: (hash) => `Tx: ${hash.slice(0, 8)}...`,
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.trade.orders(CHAIN_ID, account) }),
+      onSuccess: () =>
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.trade.orders(CHAIN_ID, account),
+        }),
       onError: parseSorobanError,
-    },
+    }
   )
 }
 
@@ -192,10 +194,9 @@ export async function claimFundingFees(account: string, marketAddresses: Array<s
       successDescription: (hash) => `${marketAddresses.length} market(s) | Tx: ${hash.slice(0, 8)}...`,
       onSuccess: (hash) => {
         void invalidateTradeQueries(account)
-        window.open(explorerTxUrl(hash), "_blank", "noopener,noreferrer")
       },
       onError: parseSorobanError,
-    },
+    }
   )
 }
 
@@ -254,10 +255,9 @@ export async function sendBatchOrderTxn(account: string, params: BatchOrderParam
       successDescription: (hash) => `${opCount} operations | Tx: ${hash.slice(0, 8)}...`,
       onSuccess: (hash) => {
         void invalidateTradeQueries(account)
-        window.open(explorerTxUrl(hash), "_blank", "noopener,noreferrer")
       },
       onError: parseSorobanError,
-    },
+    }
   )
 }
 
@@ -272,7 +272,9 @@ export type SidecarOrderParams = {
   indexToken: string
 }
 
-export async function createSidecarOrder(_params: SidecarOrderParams): Promise<string> {
+export async function createSidecarOrder(
+  _params: SidecarOrderParams
+): Promise<string> {
   await fakeTxDelay(900)
   return "DUMMY_TX_HASH"
 }

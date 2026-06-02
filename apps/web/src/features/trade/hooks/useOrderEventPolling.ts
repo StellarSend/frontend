@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { CONTRACTS } from "@/app/config/contracts"
 import { sorobanRpc } from "@/lib/soroban/client"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
-import { queryKeys } from "./query-keys"
+import { queryKeys } from "../lib/query-keys"
 
 const CHAIN_ID = "stellar-mainnet"
 const POLL_INTERVAL_MS = 5000

@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react"
 import { toast } from "sonner"
 import { sendAndPoll } from "@/lib/tx-builder"
+import { explorerTxUrl } from "@/app/config/network"
 
 export type SubmitTxOptions = {
   loadingMessage: string
@@ -28,9 +29,23 @@ export async function submitTx(
 
     await options.onSuccess?.(hash)
 
+    const description = options.successDescription?.(hash)
+
     toast.success(options.successMessage, {
       id: toastId,
-      description: options.successDescription?.(hash),
+      description: (
+        <div className="flex flex-col gap-1">
+          {description && <span>{description}</span>}
+          <a
+            href={explorerTxUrl(hash)}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-primary hover:underline"
+          >
+            View transaction →
+          </a>
+        </div>
+      ),
     })
 
     return hash

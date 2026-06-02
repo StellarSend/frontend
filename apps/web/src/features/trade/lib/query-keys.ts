@@ -1,6 +1,8 @@
 // Centralized TanStack Query key factory — keeps cache invalidation consistent
 
-export const queryKeys = {
+// Centralized TanStack Query key factory — keeps cache invalidation consistent
+
+const keys = {
   // Token prices from oracle keeper (or Stellar oracle)
   tokenPrices: (chainId: string) => ["tokenPrices", chainId] as const,
 
@@ -40,4 +42,9 @@ export const queryKeys = {
   // User token balances (invalidated after swap / deposit / withdraw)
   tokenBalances: (chainId: string, account: string) =>
     ["tokenBalances", chainId, account] as const,
+}
+
+export const queryKeys = {
+  ...keys,
+  trade: keys,
 }

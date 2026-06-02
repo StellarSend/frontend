@@ -231,7 +231,12 @@ export async function fetchOracleCandles(
       .map(([time, open, high, low, close]) => ({ time, open, high, low, close }))
       .reverse()
   } catch {
-    return generateDummyBars(symbol, period, limit)
+    // Tertiary fallback: Pyth Benchmarks historical data
+    try {
+      return await fetchPythBenchmarkCandles(symbol, period, limit)
+    } catch {
+      return []
+    }
   }
 }
 
@@ -301,6 +306,82 @@ export async function fetch24hPriceDelta(symbol: string): Promise<PriceDelta24h 
   }
 }
 
+// ─── Pyth Benchmarks candle fallback ─────────────────────────────────────────
+
+const PYTH_BENCHMARKS_BASE = "https://benchmarks.pyth.network"
+
+const PYTH_BENCHMARKS_RESOLUTION: Record<string, string> = {
+  "1m": "1",
+  "5m": "5",
+  "15m": "15",
+  "1h": "60",
+  "4h": "240",
+  "1D": "1D",
+}
+
+const PYTH_SYMBOL: Record<string, string> = {
+  BTC: "Crypto.BTC/USD",
+  ETH: "Crypto.ETH/USD",
+  XLM: "Crypto.XLM/USD",
+  USDC: "Crypto.USDC/USD",
+}
+
+const PERIOD_SECONDS: Record<string, number> = {
+  "1m": 60,
+  "5m": 5 * 60,
+  "15m": 15 * 60,
+  "1h": 60 * 60,
+  "4h": 4 * 60 * 60,
+  "1D": 24 * 60 * 60,
+}
+
+type PythBenchmarksResponse = {
+  s: string
+  t: Array<number>
+  o: Array<number>
+  h: Array<number>
+  l: Array<number>
+  c: Array<number>
+}
+
+async function fetchPythBenchmarkCandles(
+  symbol: string,
+  period: string,
+  limit: number,
+): Promise<Array<OhlcBar>> {
+  const pythSym = PYTH_SYMBOL[symbol]
+  const resolution = PYTH_BENCHMARKS_RESOLUTION[period]
+  if (!pythSym || !resolution) {
+    throw new Error(`No Pyth Benchmarks mapping for symbol=${symbol} period=${period}`)
+  }
+
+  const intervalSec = PERIOD_SECONDS[period] ?? 5 * 60
+  const to = Math.floor(Date.now() / 1000)
+  const from = to - limit * intervalSec
+
+  const params = new URLSearchParams({
+    symbol: pythSym,
+    resolution,
+    from: String(from),
+    to: String(to),
+  })
+  const res = await fetch(`${PYTH_BENCHMARKS_BASE}/v1/shims/tradingview/history?${params}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+  const json = (await res.json()) as PythBenchmarksResponse
+  if (json.s !== "ok" || !Array.isArray(json.t) || json.t.length === 0) {
+    throw new Error("Pyth Benchmarks returned no data")
+  }
+
+  return json.t.map((time, i) => ({
+    time,
+    open: json.o[i],
+    high: json.h[i],
+    low: json.l[i],
+    close: json.c[i],
+  }))
+}
+
 // ─── Fallback dummy data ─────────────────────────────────────────────────────
 
 const DUMMY_PRICES: Array<TokenPrice> = [
@@ -314,25 +395,4 @@ const DUMMY_24H: Record<string, PriceDelta24h> = {
   BTC: { symbol: "BTC", open: 79_200, high: 80_500, low: 79_000, close: 80_000, deltaPercentage: 1.01, deltaPercentageStr: "+1.01%" },
   ETH: { symbol: "ETH", open: 2_260,  high: 2_330,  low: 2_255,  close: 2_300,  deltaPercentage: 1.77, deltaPercentageStr: "+1.77%" },
   XLM: { symbol: "XLM", open: 0.158,  high: 0.169,  low: 0.157,  close: 0.167,  deltaPercentage: 5.70, deltaPercentageStr: "+5.70%" },
-}
-
-function generateDummyBars(symbol: string, _period: string, limit: number): Array<OhlcBar> {
-  const seed = DUMMY_PRICES.find((p) => p.symbol === symbol)?.minPrice ?? 100
-  const bars: Array<OhlcBar> = []
-  const intervalSec = 5 * 60
-  let price = seed
-  let t = Math.floor(Date.now() / 1000) - limit * intervalSec
-
-  for (let i = 0; i < limit; i++) {
-    const change = (Math.random() - 0.49) * seed * 0.004
-    const open = price
-    const close = open + change
-    const high = Math.max(open, close) + Math.abs(change) * Math.random()
-    const low = Math.min(open, close) - Math.abs(change) * Math.random()
-    bars.push({ time: t, open, high, low, close })
-    price = close
-    t += intervalSec
-  }
-
-  return bars
 }
