@@ -7,13 +7,40 @@ import { nitro } from "nitro/vite"
 import path from "path"
 import { fileURLToPath } from "url"
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
-export default defineConfig(({ mode }) => {
-  // 1. Check root .env for VITE_NETWORK (defaults to testnet if not found)
-  const rootEnv = loadEnv(mode, path.resolve(__dirname, "../../"), "VITE_")
-  const network = rootEnv.VITE_NETWORK || "testnet"
+const config = defineConfig({
+  plugins: [
+    nitro(),
+    viteTsConfigPaths({
+      projects: ["./tsconfig.json"],
+    }),
+    tailwindcss(),
+    tanstackStart(),
+    viteReact(),
+  ],
+  ssr: {
+    noExternal: ["react", "react-dom"],
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    deps: {
+      inline: [
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        "@testing-library/react",
+        "@testing-library/user-event",
+        "@testing-library/jest-dom",
+      ],
+    },
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+    },
+  },
+})
 
   // 2. Load the actual variables for that network from apps/web/.env.{network}
   const networkEnv = loadEnv(network, __dirname, "VITE_")

@@ -7,12 +7,10 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog"
 import { Button } from "@workspace/ui/components/button"
-import {
-  createSwapOrder,
-  sendBatchOrderTxn,
-  type DecreaseOrderParams,
-  type IncreaseOrderParams,
-} from "../../lib/stellar"
+import { createSwapOrder, sendBatchOrderTxn, type DecreaseOrderParams, type IncreaseOrderParams } from "../../lib/stellar"
+import { applyReferralCode } from "@/features/referrals/lib/referrals"
+import { readStoredReferralCode } from "@/lib/soroban/referral-code"
+import { getTraderReferralCode } from "@/lib/soroban/referral-storage"
 import { formatUsd } from "../../lib/trade-math"
 import type { useTradeState } from "../../hooks/useTradeState"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
@@ -69,7 +67,7 @@ export function ConfirmationDialog({
     "checking" | "sufficient" | "insufficient" | "approving" | "approved"
   >("checking")
   const [approveError, setApproveError] = useState<string | null>(null)
-  const account = useWalletStore((state) => state.address)
+  const account = useWalletStore((state: { address: string | null }) => state.address)
 
   const {
     tradeFlags,
@@ -289,6 +287,18 @@ export function ConfirmationDialog({
           throw new Error("Connect your wallet before placing an order.")
         }
 
+        const storedReferralCode = readStoredReferralCode()
+        if (storedReferralCode) {
+          const existingCode = await getTraderReferralCode(account)
+          if (!existingCode) {
+            try {
+              await applyReferralCode(account, storedReferralCode)
+            } catch (error) {
+              console.warn("Referral code could not be auto-applied:", error)
+            }
+          }
+        }
+
         if (allowanceState === "insufficient") {
           await handleApprove()
         }
@@ -327,7 +337,7 @@ export function ConfirmationDialog({
       : "Short"
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={open} onOpenChange={(v: boolean) => !v && onClose()}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>
