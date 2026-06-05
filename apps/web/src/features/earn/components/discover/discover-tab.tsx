@@ -1,6 +1,14 @@
 import { useMemo, useState } from "react"
 import { cn } from "@workspace/ui/lib/utils"
 import { Button } from "@workspace/ui/components/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@workspace/ui/components/dialog"
+import { Input } from "@workspace/ui/components/input"
 import { usePoolsApy } from "../../hooks/use-earn-data"
 import { depositGLV, depositGM } from "../../lib/earn"
 import { formatPct, formatUsd, formatToken } from "@/shared/lib/format"
@@ -8,6 +16,7 @@ import { useMarketPoolAmounts } from "../../hooks/useMarketPoolAmounts"
 import { useGLVVaultData, useGMPoolData, useStakingInfo } from "../../queries"
 import { fromSorobanAmount } from "@/shared/lib/bignum"
 import { TokenIcon } from "@/shared/components/TokenIcon"
+import { useWalletStore } from "@/features/wallet/store/wallet-store"
 
 type Filter = "all" | "glv" | "gm"
 type SortKey = "apy" | "tvl"
@@ -68,12 +77,17 @@ function SortButton({ active, onClick, children }: SortButtonProps) {
   )
 }
 
+type DepositTarget = { id: string; kind: "gm" | "glv"; name: string }
+
 export function DiscoverTab() {
   const { gmPools, glvVaults } = usePoolsApy()
   const { data: stakingInfo } = useStakingInfo()
+  const account = useWalletStore((state) => state.address)
   const [filter, setFilter] = useState<Filter>("all")
   const [sort, setSort] = useState<SortKey>("apy")
   const [pending, setPending] = useState<string | null>(null)
+  const [depositTarget, setDepositTarget] = useState<DepositTarget | null>(null)
+  const [depositAmount, setDepositAmount] = useState("")
 
   const rows = useMemo(() => {
     const combined = [
@@ -108,12 +122,20 @@ export function DiscoverTab() {
       .sort((a, b) => (sort === "apy" ? b.apy - a.apy : b.tvlUsd - a.tvlUsd))
   }, [gmPools, glvVaults, filter, sort])
 
-  async function handleEarn(id: string, kind: "gm" | "glv", name: string) {
-    setPending(id)
+  function handleEarn(id: string, kind: "gm" | "glv", name: string) {
+    setDepositTarget({ id, kind, name })
+    setDepositAmount("")
+  }
+
+  async function handleConfirmDeposit() {
+    if (!depositTarget || !account) return
+    const amount = parseFloat(depositAmount)
+    if (!isFinite(amount) || amount <= 0) return
+    setPending(depositTarget.id)
+    setDepositTarget(null)
     try {
-      // TODO: open deposit modal with amount input instead of calling directly
-      if (kind === "gm") await depositGM("DUMMY_ACCOUNT", name, 0)
-      else await depositGLV("DUMMY_ACCOUNT", name, 0)
+      if (depositTarget.kind === "gm") await depositGM(account, depositTarget.name, amount)
+      else await depositGLV(account, depositTarget.name, amount)
     } finally {
       setPending(null)
     }
@@ -216,6 +238,61 @@ export function DiscoverTab() {
           APY based on trailing 30-day performance
         </p>
       </div>
+
+      {/* Deposit modal */}
+      <Dialog
+        open={depositTarget !== null}
+        onOpenChange={(open) => { if (!open) setDepositTarget(null) }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              Deposit into {depositTarget?.name ?? ""}
+            </DialogTitle>
+          </DialogHeader>
+
+          {!account ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              Connect your wallet to deposit.
+            </p>
+          ) : (
+            <div className="space-y-3 py-2">
+              <label className="block text-xs text-muted-foreground">
+                Amount (USD)
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="any"
+                placeholder="0.00"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                className="tabular-nums"
+                autoFocus
+              />
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDepositTarget(null)}
+            >
+              Cancel
+            </Button>
+            {account && (
+              <Button
+                size="sm"
+                disabled={!depositAmount || parseFloat(depositAmount) <= 0}
+                onClick={() => void handleConfirmDeposit()}
+              >
+                Deposit
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

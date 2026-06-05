@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
 import { ReferralStorageClient } from "@/lib/contracts/referral-storage"
-import { getTraderDiscountBps, getTraderReferralCode } from "@/lib/soroban/referral-storage"
+import { getAffiliateCode, getTraderDiscountBps, getTraderReferralCode } from "@/lib/soroban/referral-storage"
 
 export type TimePeriod = "24h" | "7d" | "30d" | "90d" | "total"
 
@@ -80,49 +80,61 @@ export function useTraderStats(period: TimePeriod = "total") {
   })
 }
 
-export function useAffiliateStats(period: TimePeriod = "total") {
+export function useAffiliateStats(_period: TimePeriod = "total") {
+  const address = useWalletStore((state) => state.address)
+
   return useQuery<AffiliateStats>({
-    queryKey: ["referrals", "affiliate-stats", period],
+    queryKey: ["referrals", "affiliate-stats", address],
     queryFn: async (): Promise<AffiliateStats> => {
-      // TODO: Fetch from ReferralsReader Soroban contract:
-      //   - getAffiliateCode(account) → code string
-      //   - getAffiliateStats(account, period) → referralCount, tradingVolumeUsd, commissionUsd
-      //   - getTierLevel(totalVolumeUsd) → tier 1|2|3
+      if (!address) {
+        return { code: null, referralCount: 0, tradingVolumeUsd: 0, commissionUsd: 0, tier: 1, lastUpdated: null }
+      }
+
+      // Read what the contract knows: affiliate's registered code and tier.
+      // Volume/commission/referralCount require an off-chain indexer — return 0 honestly.
+      const [code, discountBps] = await Promise.all([
+        getAffiliateCode(address),
+        getTraderDiscountBps(address),
+      ])
+
+      const tier: 1 | 2 | 3 = discountBps >= 500 ? 3 : discountBps >= 300 ? 2 : 1
+
       return {
-        code: null,
+        code,
         referralCount: 0,
         tradingVolumeUsd: 0,
         commissionUsd: 0,
-        tier: 1,
-        lastUpdated: null,
+        tier,
+        lastUpdated: code ? new Date().toISOString() : null,
       }
     },
+    enabled: !!address,
     staleTime: 60_000,
   })
 }
 
 export function useAffiliateReferrals() {
+  const address = useWalletStore((state) => state.address)
+
   return useQuery<Array<AffiliateReferral>>({
-    queryKey: ["referrals", "affiliate-referrals"],
-    queryFn: async (): Promise<Array<AffiliateReferral>> => {
-      // TODO: Query Stellar subgraph / event log:
-      //   - Filter ReferralCodeUpdated events where affiliate === account
-      //   - Join with per-address trading stats for volume + commission
-      return []
-    },
+    queryKey: ["referrals", "affiliate-referrals", address],
+    // Per-referral volume and commission data require an off-chain event indexer.
+    // There is no on-chain bulk query for this. Return empty until an indexer exists.
+    queryFn: async (): Promise<Array<AffiliateReferral>> => [],
+    enabled: !!address,
     staleTime: 60_000,
   })
 }
 
 export function useDistributions() {
+  const address = useWalletStore((state) => state.address)
+
   return useQuery<Array<DistributionEntry>>({
-    queryKey: ["referrals", "distributions"],
-    queryFn: async (): Promise<Array<DistributionEntry>> => {
-      // TODO: Query RewardDistributor events on Stellar:
-      //   - Filter DistributionClaimed where affiliate === account
-      //   - Group by epoch (weekly), include txHash for explorer link
-      return []
-    },
+    queryKey: ["referrals", "distributions", address],
+    // Distribution history requires querying Stellar event logs for DistributionClaimed
+    // events — no on-chain bulk read exists. Return empty until an indexer is wired.
+    queryFn: async (): Promise<Array<DistributionEntry>> => [],
+    enabled: !!address,
     staleTime: 60_000,
   })
 }

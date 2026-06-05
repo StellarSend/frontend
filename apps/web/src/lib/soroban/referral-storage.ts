@@ -210,6 +210,20 @@ export async function getTraderRebateInfo(account: string): Promise<TraderRebate
   )
 }
 
+/**
+ * Return the referral code registered by an affiliate, or null if they have
+ * not registered one. Calls `get_affiliate_code(account)` on the contract.
+ */
+export async function getAffiliateCode(account: string): Promise<string | null> {
+  const accountVal = new Address(account).toScVal()
+  return simulateRead(
+    "get_affiliate_code",
+    [accountVal],
+    (value) => scValToReferralCode(value),
+    null,
+  )
+}
+
 export function mapContractError(error: unknown): string {
   const text = error instanceof Error ? error.message : String(error)
   const upper = text.toUpperCase()

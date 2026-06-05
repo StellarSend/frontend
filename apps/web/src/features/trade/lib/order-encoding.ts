@@ -1,7 +1,7 @@
 import { toSorobanAmount } from "@/shared/lib/bignum"
 import { getMarket } from "../data/markets"
 import { getToken } from "../data/tokens"
-import type { CreateOrderParams, SwapOrderParams as ContractSwapParams } from "@/lib/contracts/generated/exchange-router/src"
+import type { CreateOrderParams } from "@/lib/contracts/generated/exchange-router/src"
 import type { IncreaseOrderParams, DecreaseOrderParams, SwapOrderParams } from "./stellar"
 
 const USD_DECIMALS = 30
@@ -36,77 +36,80 @@ export function encodeExecutionFeeXlm(xlm = DEFAULT_EXECUTION_FEE_XLM): bigint {
   return toSorobanAmount(xlm, XLM_DECIMALS)
 }
 
-/** Map UI increase-order params to ExchangeRouter.createOrder contract params. */
-export function toCreateOrderParams(
-  params: IncreaseOrderParams,
-  priceUpdateData: Array<Uint8Array>,
-): CreateOrderParams {
+/**
+ * Map UI increase-order params → ExchangeRouter.create_order contract params.
+ * Aligns with the Rust CreateOrderParams struct in gmx_types.
+ */
+export function toCreateOrderParams(params: IncreaseOrderParams): CreateOrderParams {
   const market = getMarket(params.marketAddress)
   const indexToken = market?.indexTokenAddress ?? params.marketAddress
 
   const triggerPrice =
     params.orderType === "LimitIncrease" && params.triggerPrice != null
       ? encodeOraclePrice(params.triggerPrice, indexToken)
-      : null
+      : 0n
 
   return {
-    account: params.account,
-    market: params.marketAddress,
-    collateralToken: params.collateralToken,
-    collateralAmount: encodeTokenAmount(params.collateralAmount, params.collateralToken),
-    sizeDelta: encodeUsdAmount(params.sizeDeltaUsd),
-    isLong: params.isLong,
-    acceptablePrice: encodeOraclePrice(params.acceptablePrice, indexToken),
+    receiver:               params.account,
+    market:                 params.marketAddress,
+    initialCollateralToken: params.collateralToken,
+    swapPath:               [],
+    sizeDeltaUsd:           encodeUsdAmount(params.sizeDeltaUsd),
+    collateralDeltaAmount:  encodeTokenAmount(params.collateralAmount, params.collateralToken),
     triggerPrice,
-    orderType: params.orderType,
-    executionFee: encodeExecutionFeeXlm(),
-    receiveToken: null,
-    priceUpdateData,
+    acceptablePrice:        encodeOraclePrice(params.acceptablePrice, indexToken),
+    executionFee:           encodeExecutionFeeXlm(),
+    minOutputAmount:        0n,
+    orderType:              params.orderType,
+    isLong:                 params.isLong,
   }
 }
 
-/** Map UI decrease-order params to ExchangeRouter.createOrder contract params. */
-export function toDecreaseOrderParams(
-  params: DecreaseOrderParams,
-  priceUpdateData: Array<Uint8Array>,
-): CreateOrderParams {
+/**
+ * Map UI decrease-order params → ExchangeRouter.create_order contract params.
+ */
+export function toDecreaseOrderParams(params: DecreaseOrderParams): CreateOrderParams {
   const market = getMarket(params.marketAddress)
   const indexToken = market?.indexTokenAddress ?? params.marketAddress
 
   const triggerPrice =
-    params.triggerPrice != null
-      ? encodeOraclePrice(params.triggerPrice, indexToken)
-      : null
+    params.triggerPrice != null ? encodeOraclePrice(params.triggerPrice, indexToken) : 0n
+
+  const orderType = params.orderType === "StopLoss" ? "StopLossDecrease" : params.orderType
 
   return {
-    account: params.account,
-    market: params.marketAddress,
-    collateralToken: params.collateralToken,
-    collateralAmount: encodeTokenAmount(params.collateralDeltaAmount, params.collateralToken),
-    sizeDelta: encodeUsdAmount(params.sizeDeltaUsd),
-    isLong: params.isLong,
-    acceptablePrice: encodeOraclePrice(params.acceptablePrice, indexToken),
+    receiver:               params.account,
+    market:                 params.marketAddress,
+    initialCollateralToken: params.collateralToken,
+    swapPath:               [],
+    sizeDeltaUsd:           encodeUsdAmount(params.sizeDeltaUsd),
+    collateralDeltaAmount:  encodeTokenAmount(params.collateralDeltaAmount, params.collateralToken),
     triggerPrice,
-    orderType: params.orderType,
-    executionFee: encodeExecutionFeeXlm(),
-    receiveToken: params.receiveToken,
-    priceUpdateData,
+    acceptablePrice:        encodeOraclePrice(params.acceptablePrice, indexToken),
+    executionFee:           encodeExecutionFeeXlm(),
+    minOutputAmount:        0n,
+    orderType:              orderType as CreateOrderParams["orderType"],
+    isLong:                 params.isLong,
   }
 }
 
-/** Map UI swap-order params to ExchangeRouter.createSwapOrder contract params. */
-export function toSwapOrderParams(
-  params: SwapOrderParams,
-  priceUpdateData: Array<Uint8Array>,
-): ContractSwapParams {
+/**
+ * Map UI swap params → ExchangeRouter.create_order with MarketSwap type.
+ * The contract does not have a separate createSwapOrder function.
+ */
+export function toSwapOrderParams(params: SwapOrderParams): CreateOrderParams {
   return {
-    account: params.account,
-    fromToken: params.fromToken,
-    toToken: params.toToken,
-    amountIn: encodeTokenAmount(params.amountIn, params.fromToken),
-    minAmountOut: encodeTokenAmount(params.minAmountOut, params.toToken),
-    swapPath: params.swapPath,
-    executionFee: encodeExecutionFeeXlm(),
-    priceUpdateData,
+    receiver:               params.account,
+    market:                 params.swapPath[0] ?? params.fromToken,
+    initialCollateralToken: params.fromToken,
+    swapPath:               params.swapPath,
+    sizeDeltaUsd:           0n,
+    collateralDeltaAmount:  encodeTokenAmount(params.amountIn, params.fromToken),
+    triggerPrice:           0n,
+    acceptablePrice:        0n,
+    executionFee:           encodeExecutionFeeXlm(),
+    minOutputAmount:        encodeTokenAmount(params.minAmountOut, params.toToken),
+    orderType:              "MarketSwap",
+    isLong:                 false,
   }
 }
