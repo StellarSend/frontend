@@ -7,6 +7,11 @@ import { useTokenList } from "./useTokenList"
 
 const CHAIN_ID = "stellar-mainnet"
 
+// Maps our test token symbols to base symbols that fetchTokenPrices uses as keys
+const TEST_TO_BASE: Record<string, string> = {
+  TWBTC: "BTC", TETH: "ETH", TXLM: "XLM", TUSDC: "USDC",
+}
+
 type PricesMap = Record<string, TokenPrice>
 
 export function useTokenPrices() {
@@ -22,9 +27,11 @@ export function useTokenPrices() {
     },
   })
 
+  // Resolves a contract address or test symbol (TWBTC) → base symbol (BTC)
   const resolveSymbol = (addressOrSymbol: string): string => {
     const token = getToken(addressOrSymbol)
-    return token ? token.symbol : addressOrSymbol
+    const tokenSymbol = token ? token.symbol : addressOrSymbol
+    return TEST_TO_BASE[tokenSymbol] ?? tokenSymbol
   }
 
   return {

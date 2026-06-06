@@ -23,15 +23,16 @@ export function BottomTabs({ onSelectPosition }: Props) {
   const account = useWalletStore((state) => state.address)
   const [claimingAll, setClaimingAll] = useState(false)
 
-  const claimablePositions = positions.filter((p) => p.fundingFeeDebt > 0)
-  const totalClaimable = claimablePositions.reduce((sum, p) => sum + p.fundingFeeDebt, 0)
+  const claimablePositions = positions.filter((p) => p.fundingFeeUsd > 0)
+  const totalClaimable = claimablePositions.reduce((sum, p) => sum + p.fundingFeeUsd, 0)
 
   async function handleClaimAll() {
     if (!account || claimablePositions.length === 0) return
     setClaimingAll(true)
     try {
-      const marketAddresses = [...new Set(claimablePositions.map((p) => p.marketAddress))]
-      await claimFundingFees(account, marketAddresses)
+      const marketAddresses = claimablePositions.map((p) => p.marketAddress)
+      const tokens = claimablePositions.map((p) => p.collateralToken)
+      await claimFundingFees(account, marketAddresses, tokens)
     } finally {
       setClaimingAll(false)
     }
@@ -90,7 +91,7 @@ export function BottomTabs({ onSelectPosition }: Props) {
               {claimablePositions.map((p) => (
                 <div key={p.key} className="flex items-center justify-between rounded border border-border/50 px-3 py-2 text-xs">
                   <span className="font-medium">{p.marketName}</span>
-                  <span className="text-green-500">{formatUsd(p.fundingFeeDebt)}</span>
+                  <span className="text-green-500">{formatUsd(p.fundingFeeUsd)}</span>
                 </div>
               ))}
             </div>

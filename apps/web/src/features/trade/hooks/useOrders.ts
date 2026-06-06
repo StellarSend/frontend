@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
-import { SyntheticsReaderClient } from "@/lib/contracts/synthetics-reader"
-import type { OrderProps } from "@/lib/contracts/synthetics-reader"
+import { syntheticsReaderClient } from "@/lib/contracts"
+import type { OrderProps } from "@/lib/contracts"
 import { fromSorobanAmount } from "@/shared/lib/bignum"
 import { queryKeys } from "../lib/query-keys"
 import { MARKETS } from "../data/markets"
@@ -36,7 +36,7 @@ export type Order = {
 }
 
 async function fetchOrders(account: string): Promise<Array<Order>> {
-  const reader = new SyntheticsReaderClient()
+  const reader = syntheticsReaderClient
   const raw: Array<OrderProps> = await reader.getAccountOrders(account)
 
   return raw.map((o): Order => {

@@ -38,41 +38,41 @@ async function fetchTokensFromChain(): Promise<Array<Token>> {
       throw new Error("DataStore returned invalid or empty token list")
     }
 
-    // 2. Fetch metadata (symbol, decimals, name) for each token on-chain from its SAC contract
+    // 2. Fetch metadata (symbol, decimals, name) for each token — one sim per call
+    //    because simulateTransaction only returns a single result (the last op).
+    async function simCall(tokenContract: Contract, method: string) {
+      const tx = new TransactionBuilder(dummyAccount, {
+        fee: "100",
+        networkPassphrase: NETWORK.networkPassphrase,
+      })
+        .addOperation(tokenContract.call(method))
+        .setTimeout(10)
+        .build()
+      const sim = await sorobanRpc.simulateTransaction(tx)
+      if (!rpc.Api.isSimulationSuccess(sim) || !sim.result) {
+        throw new Error(`${method} simulation failed`)
+      }
+      return scValToNative(sim.result.retval)
+    }
+
     const tokens = await Promise.all(
       tokenAddresses.map(async (address: string) => {
         try {
           const tokenContract = new Contract(address)
-          const metaTx = new TransactionBuilder(dummyAccount, {
-            fee: "100",
-            networkPassphrase: NETWORK.networkPassphrase,
-          })
-            .addOperation(tokenContract.call("symbol"))
-            .addOperation(tokenContract.call("decimals"))
-            .addOperation(tokenContract.call("name"))
-            .setTimeout(10)
-            .build()
-
-          const metaSim = await sorobanRpc.simulateTransaction(metaTx)
-
-          if (
-            rpc.Api.isSimulationSuccess(metaSim) &&
-            metaSim.results &&
-            metaSim.results.length >= 3
-          ) {
-            const symbol = String(scValToNative(metaSim.results[0].retval))
-            const decimals = Number(scValToNative(metaSim.results[1].retval))
-            const name = String(scValToNative(metaSim.results[2].retval))
-            const isStable = symbol.toUpperCase().includes("USD") || symbol.toUpperCase() === "EUR"
-
-            return {
-              address,
-              symbol,
-              name,
-              decimals,
-              isStable,
-              priceDecimals: isStable ? 4 : 2,
-            }
+          const [symbol, decimals, name] = await Promise.all([
+            simCall(tokenContract, "symbol"),
+            simCall(tokenContract, "decimals"),
+            simCall(tokenContract, "name"),
+          ])
+          const sym = String(symbol)
+          const isStable = sym.toUpperCase().includes("USD") || sym.toUpperCase() === "EUR"
+          return {
+            address,
+            symbol: sym,
+            name: String(name),
+            decimals: Number(decimals),
+            isStable,
+            priceDecimals: isStable ? 4 : 2,
           }
         } catch (e) {
           console.warn(`Failed to fetch metadata on-chain for token ${address}`, e)

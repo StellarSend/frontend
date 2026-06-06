@@ -6,7 +6,7 @@
  * code — use the appropriate namespace below instead.
  *
  * Key shape conventions
- *  - First segment = namespace (wallet | trade | earn | referrals)
+ *  - First segment = namespace (wallet | trade | earn | faucet | pools | referrals)
  *  - Second segment = entity name
  *  - Remaining segments = discriminating arguments (address, chainId, etc.)
  */
@@ -38,6 +38,17 @@ export const queryKeys = {
     glvVaultData:      (vault: string, addr: string | null) => ["earn", "glvVaultData", vault, addr] as const,
     rewardsAccrued:    (addr: string)                       => ["earn", "rewardsAccrued", addr] as const,
     vestingSchedule:   (addr: string)                       => ["earn", "vestingSchedule", addr] as const,
+  },
+
+  faucet: {
+    data: (addr: string | null) => ["faucet", "data", addr] as const,
+  },
+
+  pools: {
+    list: () => ["pools", "list"] as const,
+    row: (marketToken: string, addr: string | null) => ["pools", "row", marketToken, addr] as const,
+    userBalance: (marketToken: string, addr: string | null) =>
+      ["pools", "userBalance", marketToken, addr] as const,
   },
 
   referrals: {

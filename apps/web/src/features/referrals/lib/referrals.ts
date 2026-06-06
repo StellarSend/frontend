@@ -1,17 +1,17 @@
 import { queryClient } from "@/app/providers/QueryProvider"
 import { NETWORK } from "@/app/config/network"
 import { prepareAndSign } from "@/lib/soroban/tx-builder"
-import { parseSorobanError } from "@/lib/soroban/errors"
+import { parseSorobanError } from "@/lib/contracts"
 import {
   affiliateCodeStorageKey,
   referralPromptStorageKey,
-} from "@/lib/soroban/referral-code"
+} from "@/lib/contracts"
 import {
   buildClaimRebatesTransaction,
   buildRegisterCodeTransaction,
   buildSetTraderReferralCodeTransaction,
   mapContractError,
-} from "@/lib/soroban/referral-storage"
+} from "@/lib/contracts"
 import { submitTx } from "@/shared/hooks/useTxSubmit"
 import { queryKeys } from "@/shared/lib/query-keys"
 import { walletKit } from "@/features/wallet/lib/wallet-kit"

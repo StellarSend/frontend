@@ -16,6 +16,7 @@ const keys = {
 
   // On-chain market state: pool amounts, OI, rates
   marketsInfo: (chainId: string) => ["marketsInfo", chainId] as const,
+  openInterest: (marketAddress: string) => ["openInterest", marketAddress] as const,
 
   // User open positions
   positions: (chainId: string, account: string) =>

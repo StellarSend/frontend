@@ -1,5 +1,4 @@
-// Market definitions — each market is a pool with an index token, long token, and short token
-// TODO: Fetch dynamically from Stellar Soroban contract (Reader contract equivalent)
+import { POOL_MARKETS } from "@/features/pools/data/markets"
 
 export type Market = {
   address: string
@@ -10,29 +9,13 @@ export type Market = {
   // TODO: add on-chain fields: openInterestLong, openInterestShort, poolAmount, etc.
 }
 
-export const MARKETS: Array<Market> = [
-  {
-    address: "BTC-BTC-USDC",
-    name: "BTC/USD",
-    indexTokenAddress: "BTC",
-    longTokenAddress: "BTC",
-    shortTokenAddress: "USDC",
-  },
-  {
-    address: "ETH-ETH-USDC",
-    name: "ETH/USD",
-    indexTokenAddress: "ETH",
-    longTokenAddress: "ETH",
-    shortTokenAddress: "USDC",
-  },
-  {
-    address: "XLM-XLM-USDC",
-    name: "XLM/USD",
-    indexTokenAddress: "XLM",
-    longTokenAddress: "XLM",
-    shortTokenAddress: "USDC",
-  },
-]
+export const MARKETS: Array<Market> = POOL_MARKETS.map((market) => ({
+  address: market.marketToken,
+  name: market.displayName,
+  indexTokenAddress: market.indexToken,
+  longTokenAddress: market.longToken,
+  shortTokenAddress: market.shortToken,
+}))
 
 export function getMarket(address: string): Market | undefined {
   return MARKETS.find((m) => m.address === address)

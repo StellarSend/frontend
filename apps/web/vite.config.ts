@@ -16,6 +16,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     define: {
+      // freighter-api ships as a webpack UMD bundle that references `self` as the
+      // global root. In Node.js SSR context `self` is undefined; alias it to
+      // globalThis so the UMD registration doesn't crash the module runner.
+      "self": "globalThis",
       "import.meta.env.VITE_NETWORK": JSON.stringify(network),
       ...Object.entries(networkEnv).reduce(
         (acc, [key, val]) => {

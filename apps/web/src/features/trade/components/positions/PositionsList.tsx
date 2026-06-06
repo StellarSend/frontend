@@ -97,7 +97,7 @@ export function PositionsList({ onSelectPosition }: Props) {
   async function handleClaim(position: Position) {
     setClaiming(position.key)
     try {
-      await claimFundingFees(position.account, [position.marketAddress])
+      await claimFundingFees(position.account, [position.marketAddress], [position.collateralToken])
       if (account) {
         await queryClient.invalidateQueries({
           queryKey: queryKeys.positions("stellar-mainnet", account),
@@ -185,8 +185,8 @@ export function PositionsList({ onSelectPosition }: Props) {
                 </span>
               </td>
               <td className="px-4 py-2 font-mono tabular-nums">
-                {p.fundingFeeDebt > 0 ? (
-                  <span className="text-green-500">{formatUsd(p.fundingFeeDebt)}</span>
+                {p.fundingFeeUsd > 0 ? (
+                  <span className="text-green-500">{formatUsd(p.fundingFeeUsd)}</span>
                 ) : (
                   <span className="text-muted-foreground">-</span>
                 )}
@@ -228,7 +228,7 @@ export function PositionsList({ onSelectPosition }: Props) {
                   >
                     - Collateral
                   </Button>
-                  {p.fundingFeeDebt > 0 && (
+                  {p.fundingFeeUsd > 0 && (
                     <Button
                       size="xs"
                       variant="outline"

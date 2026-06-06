@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { queryKeys } from "../lib/query-keys"
-import { SyntheticsReaderClient } from "@/lib/contracts/synthetics-reader"
+import { syntheticsReaderClient } from "@/lib/contracts"
 
 const FUNDING_INTERVAL_MS = 8 * 60 * 60 * 1000 // 8-hour epochs
 const CHAIN_ID = "stellar-mainnet"
@@ -24,7 +24,7 @@ async function fetchFundingRate(marketAddress: string): Promise<FundingRateInfo>
     return { ratePerHour: 0, nextEpochTs: computeNextEpoch() }
   }
 
-  const reader = new SyntheticsReaderClient()
+  const reader = syntheticsReaderClient
   const info = await reader.getFundingInfo(marketAddress)
 
   // funding_factor_per_second is in 30-decimal precision.
@@ -35,11 +35,17 @@ async function fetchFundingRate(marketAddress: string): Promise<FundingRateInfo>
   return { ratePerHour, nextEpochTs: computeNextEpoch() }
 }
 
+// Market token addresses in the MARKETS data may be placeholders (e.g. "BTC-BTC-USDC")
+// until real Soroban contract addresses are configured. Guard all on-chain calls.
+function isSorobanAddress(addr: string): boolean {
+  return /^C[A-Z2-7]{55}$/.test(addr)
+}
+
 export function useFundingRate(marketAddress: string = DEFAULT_MARKET_ADDRESS) {
   return useQuery<FundingRateInfo>({
     queryKey: queryKeys.trade.fundingRate(CHAIN_ID, marketAddress),
     queryFn: () => fetchFundingRate(marketAddress),
-    enabled: marketAddress !== DEFAULT_MARKET_ADDRESS,
+    enabled: marketAddress !== DEFAULT_MARKET_ADDRESS && isSorobanAddress(marketAddress),
     staleTime: 60_000,
     refetchInterval: 60_000,
   })

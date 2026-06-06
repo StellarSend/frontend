@@ -5,15 +5,10 @@ import { useState } from "react"
 import { useOrders, type Order } from "../../hooks/useOrders"
 import { cancelOrder } from "../../lib/stellar"
 import { formatUsd } from "../../lib/trade-math"
-import type { OrderKey } from "@/lib/contracts/generated/exchange-router/src"
+import type { OrderKey } from "@/lib/contracts"
 
 function toOrderKey(order: Order): OrderKey {
-  return {
-    orderType: order.orderType,
-    account: order.account,
-    market: order.marketAddress,
-    index: 0n,
-  }
+  return order.key
 }
 
 export function OrdersList() {
@@ -83,7 +78,7 @@ export function OrdersList() {
               <td className="px-4 py-2 font-mono">{formatUsd(o.sizeUsd)}</td>
               <td className="px-4 py-2 font-mono">{formatUsd(o.triggerPrice)}</td>
               <td className="px-4 py-2 text-muted-foreground">
-                {new Date(o.createdAt).toLocaleTimeString()}
+                {new Date(o.updatedAt).toLocaleTimeString()}
               </td>
               <td className="px-4 py-2">
                 <Button

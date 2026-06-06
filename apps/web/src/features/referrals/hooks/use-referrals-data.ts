@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
-import { ReferralStorageClient } from "@/lib/contracts/referral-storage"
-import { getAffiliateCode, getTraderDiscountBps, getTraderReferralCode } from "@/lib/soroban/referral-storage"
+import { referralStorageClient } from "@/lib/contracts"
+import { getAffiliateCode, getTraderDiscountBps, getTraderReferralCode } from "@/lib/contracts"
 
 export type TimePeriod = "24h" | "7d" | "30d" | "90d" | "total"
 
@@ -57,7 +57,7 @@ export function useTraderStats(period: TimePeriod = "total") {
         }
       }
 
-      const client = new ReferralStorageClient()
+      const client = referralStorageClient
       const [referralCode, rebates, discountBps] = await Promise.all([
         getTraderReferralCode(address),
         client.getTraderRebates(address),

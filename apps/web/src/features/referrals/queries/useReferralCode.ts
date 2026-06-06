@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
-import { ReferralStorageClient } from "@/lib/contracts/referral-storage"
+import { referralStorageClient } from "@/lib/contracts"
 import { readStoredAffiliateCode } from "../lib/referrals"
 import { queryKeys } from "@/shared/lib/query-keys"
 
@@ -17,7 +17,7 @@ export function useReferralCode() {
       const stored = readStoredAffiliateCode(address as string)
       if (stored) return stored
 
-      const client = new ReferralStorageClient()
+      const client = referralStorageClient
       const info = await client.getReferralInfo(address as string)
       return info.code
     },

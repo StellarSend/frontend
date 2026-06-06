@@ -7,13 +7,13 @@ import {
   buildCancelOrderTransaction,
   buildBatchOrderTransaction,
   buildClaimFundingFeesTransaction,
-} from "@/lib/contracts/exchange-router-client"
+} from "@/lib/contracts"
 import { prepareAndSign } from "@/lib/soroban/tx-builder"
-import { parseSorobanError } from "@/lib/soroban/errors"
+import { parseSorobanError } from "@/lib/contracts"
 import { walletKit } from "@/features/wallet/lib/wallet-kit"
 import { queryKeys } from "./query-keys"
 import { toCreateOrderParams, toDecreaseOrderParams, toSwapOrderParams, encodeOraclePrice, encodeUsdAmount, encodeExecutionFeeXlm } from "./order-encoding"
-import type { OrderKey } from "@/lib/contracts/generated/exchange-router/src"
+import type { OrderKey } from "@/lib/contracts"
 import { submitTx } from "@/shared/hooks/useTxSubmit"
 
 const CHAIN_ID = "stellar-mainnet"

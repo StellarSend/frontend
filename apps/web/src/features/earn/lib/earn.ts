@@ -3,7 +3,7 @@ import { submitTx } from "@/shared/hooks/useTxSubmit"
 import { NETWORK } from "@/app/config/network"
 import { queryClient } from "@/app/providers/QueryProvider"
 import { prepareAndSign } from "@/lib/soroban/tx-builder"
-import { parseSorobanError } from "@/lib/soroban/errors"
+import { parseSorobanError } from "@/lib/contracts"
 import { walletKit } from "@/features/wallet/lib/wallet-kit"
 import { queryKeys } from "@/shared/lib/query-keys"
 import { toSorobanAmount } from "@/shared/lib/bignum"
@@ -12,16 +12,16 @@ import {
   buildUnstakeSO4Transaction,
   buildClaimRewardsTransaction,
   buildCompoundTransaction,
-} from "@/lib/contracts/staking-router"
+} from "@/lib/contracts"
 import {
   buildCreateDepositTransaction,
   buildCreateWithdrawalTransaction,
-} from "@/lib/contracts/exchange-router-client"
-import { buildDepositForVestingTransaction } from "@/lib/contracts/vesting-router"
+} from "@/lib/contracts"
+import { buildDepositForVestingTransaction } from "@/lib/contracts"
 import {
   createDeposit as createGlvDeposit,
   createWithdrawal as createGlvWithdrawal,
-} from "@/lib/contracts/glv-router-client"
+} from "@/lib/glv-router-client"
 import { GM_POOLS, GLV_VAULTS } from "../data/pools"
 
 const SO4_DECIMALS = 7
@@ -116,7 +116,7 @@ export async function depositGM(account: string, poolName: string, amountUsd: nu
   return submitTx(
     async () => {
       const built = await buildCreateDepositTransaction({
-        account,
+        caller: account,
         market: pool.marketAddress,
         longTokenAmount,
         shortTokenAmount: 0n,
@@ -154,9 +154,9 @@ export async function withdrawGM(account: string, poolName: string, gmAmount: nu
   return submitTx(
     async () => {
       const built = await buildCreateWithdrawalTransaction({
-        account,
+        caller: account,
         market: pool.marketAddress,
-        gmAmount: withdrawalAmount,
+        marketTokenAmount: withdrawalAmount,
       })
       expectedLongTokens = built.expectedLongTokens
       expectedShortTokens = built.expectedShortTokens

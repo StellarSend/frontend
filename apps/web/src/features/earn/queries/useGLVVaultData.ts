@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query"
 import { GLV_VAULTS, GM_POOLS } from "../data/pools"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
 import { queryKeys } from "@/shared/lib/query-keys"
-import { SyntheticsReaderClient } from "@/lib/contracts/synthetics-reader"
+import { syntheticsReaderClient } from "@/lib/contracts"
 import { fromSorobanAmount } from "@/shared/lib/bignum"
 
-const syntheticsReader = new SyntheticsReaderClient()
+const syntheticsReader = syntheticsReaderClient
 
 export type GLVPoolAllocation = {
   poolId: string

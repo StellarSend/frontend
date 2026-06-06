@@ -19,8 +19,23 @@ export type ContractAddresses = {
   exchangeRouter: string
   syntheticsReader: string
   dataStore: string
+  marketFactory: string
+  depositHandler: string
+  withdrawalHandler: string
   orderVault: string
   referralStorage: string
+  faucet: string
+  tokens: {
+    tusdc: string
+    twbtc: string
+    teth: string
+    txlm: string
+  }
+  marketTokens: {
+    twbtcTusdc: string
+    tethTusdc: string
+    txlmTusdc: string
+  }
   // ── Infrastructure contracts used by Reader view functions ────────────────
   oracle: string
   orderHandler: string
@@ -34,8 +49,23 @@ export const CONTRACTS: ContractAddresses = {
   exchangeRouter:   ENV.CONTRACTS.EXCHANGE_ROUTER,
   syntheticsReader: ENV.CONTRACTS.SYNTHETICS_READER,
   dataStore:        ENV.CONTRACTS.DATA_STORE,
+  marketFactory:    ENV.CONTRACTS.MARKET_FACTORY,
+  depositHandler:   ENV.CONTRACTS.DEPOSIT_HANDLER,
+  withdrawalHandler: ENV.CONTRACTS.WITHDRAWAL_HANDLER,
   orderVault:       ENV.CONTRACTS.ORDER_VAULT,
   referralStorage:  ENV.CONTRACTS.REFERRAL_STORAGE,
+  faucet:           ENV.CONTRACTS.FAUCET,
+  tokens: {
+    tusdc: ENV.CONTRACTS.TOKENS.TUSDC,
+    twbtc: ENV.CONTRACTS.TOKENS.TWBTC,
+    teth:  ENV.CONTRACTS.TOKENS.TETH,
+    txlm:  ENV.CONTRACTS.TOKENS.TXLM,
+  },
+  marketTokens: {
+    twbtcTusdc: ENV.CONTRACTS.MARKET_TOKENS.TWBTC_TUSDC,
+    tethTusdc:  ENV.CONTRACTS.MARKET_TOKENS.TETH_TUSDC,
+    txlmTusdc:  ENV.CONTRACTS.MARKET_TOKENS.TXLM_TUSDC,
+  },
   oracle:           ENV.CONTRACTS.ORACLE,
   orderHandler:     ENV.CONTRACTS.ORDER_HANDLER,
   stakingRouter:    ENV.CONTRACTS.STAKING_ROUTER,

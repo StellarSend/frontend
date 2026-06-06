@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
-import { ReferralStorageClient, type TierLevel } from "@/lib/contracts/referral-storage"
+import { referralStorageClient, type TierLevel } from "@/lib/contracts"
 import { queryKeys } from "@/shared/lib/query-keys"
 
 /**
@@ -15,7 +15,7 @@ export function useReferralTier(address?: string) {
   return useQuery<TierLevel>({
     queryKey: queryKeys.referrals.tier(target ?? null),
     queryFn: async (): Promise<TierLevel> => {
-      const client = new ReferralStorageClient()
+      const client = referralStorageClient
       return client.getTraderTier(target as string)
     },
     enabled: !!target,

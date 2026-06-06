@@ -9,8 +9,8 @@ import {
 import { Button } from "@workspace/ui/components/button"
 import { createSwapOrder, sendBatchOrderTxn, type DecreaseOrderParams, type IncreaseOrderParams } from "../../lib/stellar"
 import { applyReferralCode } from "@/features/referrals/lib/referrals"
-import { readStoredReferralCode } from "@/lib/soroban/referral-code"
-import { getTraderReferralCode } from "@/lib/soroban/referral-storage"
+import { readStoredReferralCode } from "@/lib/contracts"
+import { getTraderReferralCode } from "@/lib/contracts"
 import { formatUsd } from "../../lib/trade-math"
 import type { useTradeState } from "../../hooks/useTradeState"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
@@ -20,17 +20,16 @@ import { estimateFee } from "@/lib/soroban/simulate"
 import {
   buildBatchOrderTransaction,
   buildCreateOrderTransaction,
-} from "@/lib/contracts/exchange-router-client"
+} from "@/lib/contracts"
 import {
   toCreateOrderParams,
   toDecreaseOrderParams,
   encodeTokenAmount,
 } from "../../lib/order-encoding"
-import { fetchPriceUpdateDataForMarket } from "../../lib/pyth"
 import {
   checkAllowance,
   buildApproveTransaction,
-} from "@/lib/contracts/sac-token-client"
+} from "@/lib/contracts"
 import { prepareAndSign } from "@/lib/soroban/tx-builder"
 import { submitTx } from "@/shared/hooks/useTxSubmit"
 import { walletKit } from "@/features/wallet/lib/wallet-kit"
@@ -39,7 +38,7 @@ import { CONTRACTS } from "@/app/config/contracts"
 import { fetchFeeConfig } from "../../lib/data-store"
 import { useQuery } from "@tanstack/react-query"
 import { queryKeys } from "../../lib/query-keys"
-import { parseSorobanError } from "@/lib/soroban/errors"
+import { parseSorobanError } from "@/lib/contracts"
 
 type Props = {
   open: boolean
@@ -185,26 +184,21 @@ export function ConfirmationDialog({
           leverage,
         }
 
-        const priceUpdateData = await fetchPriceUpdateDataForMarket(
-          tradeState.marketAddress,
-          toTokenAddress
-        )
-
         const tx = sidecarCreateOrders.length
           ? await buildBatchOrderTransaction(account, [
               {
                 actionType: "createOrder",
-                orderParams: toCreateOrderParams(parentOrder, priceUpdateData),
+                orderParams: toCreateOrderParams(parentOrder),
                 cancelKey: null,
               },
               ...sidecarCreateOrders.map((order) => ({
                 actionType: "createOrder" as const,
-                orderParams: toDecreaseOrderParams(order, priceUpdateData),
+                orderParams: toDecreaseOrderParams(order),
                 cancelKey: null,
               })),
             ])
           : await buildCreateOrderTransaction(
-              toCreateOrderParams(parentOrder, priceUpdateData)
+              toCreateOrderParams(parentOrder)
             )
 
         const fee = await estimateFee(tx)

@@ -1,7 +1,7 @@
 import { toSorobanAmount } from "@/shared/lib/bignum"
 import { getMarket } from "../data/markets"
 import { getToken } from "../data/tokens"
-import type { CreateOrderParams } from "@/lib/contracts/generated/exchange-router/src"
+import type { CreateOrderParams } from "@/lib/contracts"
 import type { IncreaseOrderParams, DecreaseOrderParams, SwapOrderParams } from "./stellar"
 
 const USD_DECIMALS = 30

@@ -1,16 +1,17 @@
-// Oracle price feed — Pyth Hermes as primary on-chain source, Binance REST for display fallback.
+// Oracle price feed — SO4 oracle (primary), Pyth Hermes (on-chain), Binance REST (display/candles).
 //
-// Candle format differences:
-//   Binance klines → oldest-first, prices as strings, times in milliseconds
-//   GMX candles   → newest-first, prices as numbers, times in seconds
+// Symbol conventions used in this file:
+//   base symbol  — "BTC", "ETH", "XLM", "USDC"  (used by external APIs)
+//   test symbol  — "TWBTC", "TETH", "TXLM", "TUSDC" (our token symbols)
+//   address      — Soroban contract ID (what the UI passes for the selected market)
 //
-// Both are normalised into OhlcBar (oldest-first, prices as numbers, time in seconds).
+// All public functions accept any of the three forms and resolve internally.
 
 import { ENV } from "../../../app/config/env"
 import { formatPct } from "@/shared/lib/format"
 import { fetchPythAttestations } from "./pyth"
 
-export type PriceSource = "pyth" | "binance" | "gmx" | "fallback"
+export type PriceSource = "so4" | "pyth" | "binance" | "gmx" | "fallback"
 
 export type TokenPrice = {
   symbol: string
@@ -37,6 +38,30 @@ export type PriceDelta24h = {
   close: number
   deltaPercentage: number
   deltaPercentageStr: string
+}
+
+// ─── Symbol resolution ────────────────────────────────────────────────────────
+
+// Maps our test token symbols to base symbols used by external price APIs
+const TEST_TO_BASE: Record<string, string> = {
+  TWBTC: "BTC", TETH: "ETH", TXLM: "XLM", TUSDC: "USDC",
+}
+
+// Resolves any of: contract address, test symbol (TWBTC), or base symbol (BTC)
+// → always returns the base symbol (BTC, ETH, XLM, USDC)
+function resolveBaseSymbol(symbolOrAddress: string): string {
+  // Already a base symbol
+  if (BINANCE_SYMBOL[symbolOrAddress]) return symbolOrAddress
+  // Test token symbol (TWBTC → BTC)
+  if (TEST_TO_BASE[symbolOrAddress]) return TEST_TO_BASE[symbolOrAddress]
+  // Contract address — map via ENV token addresses
+  const addrMap: Record<string, string> = {
+    [ENV.CONTRACTS.TOKENS.TWBTC]: "BTC",
+    [ENV.CONTRACTS.TOKENS.TETH]:  "ETH",
+    [ENV.CONTRACTS.TOKENS.TXLM]:  "XLM",
+    [ENV.CONTRACTS.TOKENS.TUSDC]: "USDC",
+  }
+  return addrMap[symbolOrAddress] ?? symbolOrAddress
 }
 
 // ─── Symbol / period mappings ────────────────────────────────────────────────
@@ -78,7 +103,40 @@ function pctStr(pct: number): string {
   return formatPct(pct)
 }
 
-// ─── Binance display fallback (not used for on-chain tx) ───────────────────────
+// ─── SO4 Oracle (primary price source) ───────────────────────────────────────
+
+const SO4_ORACLE_URL = "https://oracle.biscotti-proxy-worker.workers.dev"
+
+type So4OracleTicker = {
+  token: string    // contract address
+  symbol: string   // TWBTC, TETH, TXLM, TUSDC
+  min: number      // usdPrice × 10^30 (parsed as float — precision loss at low digits is acceptable)
+  max: number
+  timestamp: number // Unix seconds
+}
+
+async function fetchSo4OraclePrices(): Promise<Map<string, TokenPrice>> {
+  const res = await fetch(`${SO4_ORACLE_URL}/prices`)
+  if (!res.ok) throw new Error(`SO4 oracle HTTP ${res.status}`)
+  const tickers = (await res.json()) as Array<So4OracleTicker>
+
+  const map = new Map<string, TokenPrice>()
+  for (const t of tickers) {
+    const baseSymbol = TEST_TO_BASE[t.symbol]
+    if (!baseSymbol) continue
+    map.set(baseSymbol, {
+      symbol: baseSymbol,
+      address: t.token,
+      minPrice: t.min / 1e30,
+      maxPrice: t.max / 1e30,
+      updatedAt: t.timestamp * 1_000,
+      source: "so4",
+    })
+  }
+  return map
+}
+
+// ─── Binance display fallback ─────────────────────────────────────────────────
 
 type BinanceBookTicker = {
   symbol: string
@@ -123,8 +181,18 @@ type GmxTicker = {
 }
 
 export async function fetchTokenPrices(): Promise<Array<TokenPrice>> {
-  const pythMap = new Map<string, TokenPrice>()
+  // Primary: SO4 oracle (deployed, aggregates Binance + Coinbase + Pyth)
+  try {
+    const so4Map = await fetchSo4OraclePrices()
+    if (so4Map.size > 0) {
+      return DUMMY_PRICES.map((d) => so4Map.get(d.symbol) ?? d)
+    }
+  } catch {
+    // Fall through to Pyth
+  }
 
+  // Secondary: Pyth Hermes
+  const pythMap = new Map<string, TokenPrice>()
   try {
     const attestations = await fetchPythAttestations([...TRACKED_SYMBOLS])
     for (const a of attestations) {
@@ -138,7 +206,7 @@ export async function fetchTokenPrices(): Promise<Array<TokenPrice>> {
       })
     }
   } catch {
-    // Fall through — Binance display fallback below
+    // Fall through
   }
 
   if (pythMap.size > 0) {
@@ -148,11 +216,10 @@ export async function fetchTokenPrices(): Promise<Array<TokenPrice>> {
     } catch {
       // Pyth-only is acceptable
     }
-
     return DUMMY_PRICES.map((d) => pythMap.get(d.symbol) ?? binanceMap.get(d.symbol) ?? d)
   }
 
-  // Display fallback: Binance REST (not used for on-chain transactions)
+  // Tertiary: Binance REST
   try {
     const binanceMap = await fetchBinanceDisplayPrices()
     return DUMMY_PRICES.map((d) => binanceMap.get(d.symbol) ?? d)
@@ -190,8 +257,11 @@ export async function fetchOracleCandles(
   period: string,
   limit = 500,
 ): Promise<Array<OhlcBar>> {
+  // Resolve contract address / test symbol → base symbol (BTC, ETH, XLM, USDC)
+  const base = resolveBaseSymbol(symbol)
+
   // Try Binance first — klines are oldest-first, prices are strings, times in ms
-  const binanceSym = BINANCE_SYMBOL[symbol]
+  const binanceSym = BINANCE_SYMBOL[base]
   const binancePeriod = BINANCE_PERIOD[period]
   if (binanceSym && binancePeriod) {
     try {
@@ -212,14 +282,21 @@ export async function fetchOracleCandles(
         close: parseFloat(c[4] as string),
       }))
     } catch {
-      // Fall through to GMX
+      // Fall through to Pyth Benchmarks
     }
   }
 
-  // Fallback: GMX oracle — candles are newest-first, values are plain USD numbers
+  // Fallback: Pyth Benchmarks (reliable, no geo-blocking)
+  try {
+    return await fetchPythBenchmarkCandles(base, period, limit)
+  } catch {
+    // Fall through to GMX
+  }
+
+  // Last resort: GMX oracle — candles are newest-first, values are plain USD numbers
   try {
     const params = new URLSearchParams({
-      tokenSymbol: symbol,
+      tokenSymbol: base,
       period: period === "1D" ? "1d" : period,
       limit: String(limit),
     })
@@ -231,12 +308,7 @@ export async function fetchOracleCandles(
       .map(([time, open, high, low, close]) => ({ time, open, high, low, close }))
       .reverse()
   } catch {
-    // Tertiary fallback: Pyth Benchmarks historical data
-    try {
-      return await fetchPythBenchmarkCandles(symbol, period, limit)
-    } catch {
-      return []
-    }
+    return []
   }
 }
 
@@ -260,8 +332,10 @@ type GmxDayCandle = {
 }
 
 export async function fetch24hPriceDelta(symbol: string): Promise<PriceDelta24h | null> {
+  const base = resolveBaseSymbol(symbol)
+
   // Try Binance first
-  const binanceSym = BINANCE_SYMBOL[symbol]
+  const binanceSym = BINANCE_SYMBOL[base]
   if (binanceSym) {
     try {
       const res = await fetch(
@@ -271,7 +345,7 @@ export async function fetch24hPriceDelta(symbol: string): Promise<PriceDelta24h 
       const t = (await res.json()) as Binance24hTicker
       const deltaPercentage = parseFloat(t.priceChangePercent)
       return {
-        symbol,
+        symbol: base,
         open: parseFloat(t.openPrice),
         high: parseFloat(t.highPrice),
         low: parseFloat(t.lowPrice),
@@ -289,11 +363,11 @@ export async function fetch24hPriceDelta(symbol: string): Promise<PriceDelta24h 
     const res = await fetch(`${GMX_BASE}/prices/24h`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const all = (await res.json()) as Array<GmxDayCandle>
-    const c = all.find((x) => x.tokenSymbol === symbol)
-    if (!c) return DUMMY_24H[symbol] ?? null
+    const c = all.find((x) => x.tokenSymbol === base)
+    if (!c) return DUMMY_24H[base] ?? null
     const deltaPercentage = c.open > 0 ? ((c.close - c.open) / c.open) * 100 : 0
     return {
-      symbol,
+      symbol: base,
       open: c.open,
       high: c.high,
       low: c.low,
@@ -302,7 +376,7 @@ export async function fetch24hPriceDelta(symbol: string): Promise<PriceDelta24h 
       deltaPercentageStr: pctStr(deltaPercentage),
     }
   } catch {
-    return DUMMY_24H[symbol] ?? null
+    return DUMMY_24H[base] ?? null
   }
 }
 

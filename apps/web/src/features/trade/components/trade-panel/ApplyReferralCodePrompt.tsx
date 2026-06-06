@@ -7,8 +7,8 @@ import {
   markReferralPromptComplete,
   validateReferralCode,
 } from "@/features/referrals/lib/referrals"
-import { getTraderReferralCode } from "@/lib/soroban/referral-storage"
-import { readStoredReferralCode } from "@/lib/soroban/referral-code"
+import { getTraderReferralCode } from "@/lib/contracts"
+import { readStoredReferralCode } from "@/lib/contracts"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { queryKeys } from "@/shared/lib/query-keys"
 

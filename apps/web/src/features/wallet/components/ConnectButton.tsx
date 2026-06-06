@@ -1,17 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk"
-import { FREIGHTER_ID } from "@creit.tech/stellar-wallets-kit/modules/freighter"
-import { HANA_ID } from "@creit.tech/stellar-wallets-kit/modules/hana"
-import { XBULL_ID } from "@creit.tech/stellar-wallets-kit/modules/xbull"
 
 import { QRCodeSVG } from "qrcode.react"
 
 import { Button } from "@workspace/ui/components/button"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@workspace/ui/components/tooltip"
 import {
   Dialog,
   DialogContent,
@@ -40,6 +31,10 @@ type WalletOption = {
   installUrl: string
 }
 
+const FREIGHTER_ID = "freighter"
+const HANA_ID = "hana"
+const XBULL_ID = "xbull"
+
 const WALLET_OPTIONS: Array<WalletOption> = [
   {
     id: FREIGHTER_ID,
@@ -58,6 +53,11 @@ const WALLET_OPTIONS: Array<WalletOption> = [
       "https://chromewebstore.google.com/detail/hana-wallet/jfdlamikmbghhapbgfoogdffldioobgl",
   },
 ]
+
+async function getWalletsKit() {
+  const { StellarWalletsKit } = await import("@creit.tech/stellar-wallets-kit/sdk")
+  return StellarWalletsKit
+}
 
 export function ConnectButton({ className, ...props }: ConnectButtonProps) {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
@@ -78,25 +78,18 @@ export function ConnectButton({ className, ...props }: ConnectButtonProps) {
 
   return (
     <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            {...props}
-            type="button"
-            aria-label={isConnecting ? "Connecting wallet" : "Connect wallet"}
-            aria-busy={isConnecting}
-            className={cn("w-full sm:w-auto", className)}
-            disabled={isConnecting || props.disabled}
-            onClick={() => setIsWalletModalOpen(true)}
-          >
-            {isConnecting && <Spinner />}
-            Connect Wallet
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <span>Press <kbd className="font-semibold">K</kbd> to open wallet</span>
-        </TooltipContent>
-      </Tooltip>
+      <Button
+        {...props}
+        type="button"
+        aria-label={isConnecting ? "Connecting wallet" : "Connect wallet"}
+        aria-busy={isConnecting}
+        className={cn("w-full sm:w-auto", className)}
+        disabled={isConnecting || props.disabled}
+        onClick={() => setIsWalletModalOpen(true)}
+      >
+        {isConnecting && <Spinner />}
+        Connect Wallet
+      </Button>
 
       <WalletModal open={isWalletModalOpen} onOpenChange={setIsWalletModalOpen} />
     </>
@@ -220,7 +213,8 @@ function WalletModal({
 
     let cancelled = false
 
-    StellarWalletsKit.refreshSupportedWallets()
+    getWalletsKit()
+      .then((kit) => kit.refreshSupportedWallets())
       .then((wallets) => {
         if (cancelled) return
 
@@ -260,8 +254,9 @@ function WalletModal({
     setStatus("connecting")
 
     try {
-      StellarWalletsKit.setWallet(wallet.id)
-      const { address } = await StellarWalletsKit.fetchAddress()
+      const kit = await getWalletsKit()
+      kit.setWallet(wallet.id)
+      const { address } = await kit.fetchAddress()
       setConnected(address, wallet.id)
       onOpenChange(false)
     } catch {

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ORDER_EXECUTION_FROZEN_MESSAGE } from "@/lib/soroban/errors"
+import { ORDER_EXECUTION_FROZEN_MESSAGE } from "@/lib/contracts"
 
 const SESSION_KEY = "so4-order-execution-frozen-dismissed"
 

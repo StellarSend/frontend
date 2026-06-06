@@ -1,5 +1,5 @@
 import { explorerTxUrl } from "@/app/config/network"
-import { parseSorobanError } from "@/lib/soroban/errors"
+import { parseSorobanError } from "@/lib/contracts"
 
 export type TxStatusState =
   | { status: "pending" }

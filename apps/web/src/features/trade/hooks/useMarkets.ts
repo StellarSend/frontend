@@ -3,11 +3,11 @@ import { useMemo } from "react"
 import { MARKETS } from "../data/markets"
 import type { Market } from "../data/markets"
 import { useTokenList } from "./useTokenList"
-import { SyntheticsReaderClient } from "@/lib/contracts/synthetics-reader"
+import { syntheticsReaderClient } from "@/lib/contracts"
 import { queryKeys } from "../lib/query-keys"
 
 async function fetchMarkets(): Promise<Array<Market>> {
-  const client = new SyntheticsReaderClient()
+  const client = syntheticsReaderClient
   const results = await Promise.allSettled(
     MARKETS.map(async (market) => {
       const info = await client.getMarketInfo(market.address)
@@ -38,8 +38,8 @@ export function useMarkets() {
   const getMarketsForIndexToken = useMemo(
     () => (indexTokenAddressOrSymbol: string) => {
       const token = getToken(indexTokenAddressOrSymbol)
-      const symbol = token ? token.symbol : indexTokenAddressOrSymbol
-      return markets.filter((m) => m.indexTokenAddress === symbol)
+      const tokenAddress = token ? token.address : indexTokenAddressOrSymbol
+      return markets.filter((m) => m.indexTokenAddress === tokenAddress)
     },
     [markets, getToken],
   )

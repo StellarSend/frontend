@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { fromSorobanAmount } from "@/shared/lib/bignum"
 import { queryKeys } from "@/shared/lib/query-keys"
-import { SyntheticsReaderClient } from "@/lib/contracts/synthetics-reader"
+import { syntheticsReaderClient } from "@/lib/contracts"
 
-const syntheticsReader = new SyntheticsReaderClient()
+const syntheticsReader = syntheticsReaderClient
 
 type MarketPoolAmounts = {
   longTokenAmount: number

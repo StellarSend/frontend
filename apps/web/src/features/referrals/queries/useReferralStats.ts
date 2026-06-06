@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
-import type { TierLevel } from "@/lib/contracts/referral-storage"
-import { ReferralStorageClient } from "@/lib/contracts/referral-storage"
+import type { TierLevel } from "@/lib/contracts"
+import { referralStorageClient } from "@/lib/contracts"
 import { getTierFromVolume } from "../data/tiers"
 import type { TimePeriod } from "../hooks/use-referrals-data"
 import { queryKeys } from "@/shared/lib/query-keys"
@@ -29,7 +29,7 @@ export function useReferralStats(code: string | null, period: TimePeriod = "tota
   return useQuery<ReferralStats>({
     queryKey: queryKeys.referrals.stats(code, period),
     queryFn: async (): Promise<ReferralStats> => {
-      const client = new ReferralStorageClient()
+      const client = referralStorageClient
       const onChain = await client.getStatsForCode(code as string, period)
 
       const tier =

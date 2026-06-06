@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query"
 import { queryKeys } from "../lib/query-keys"
 import { MARKETS } from "../data/markets"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
-import { SyntheticsReaderClient } from "@/lib/contracts/synthetics-reader"
-import type { PositionInfo } from "@/lib/contracts/synthetics-reader"
+import { syntheticsReaderClient } from "@/lib/contracts"
+import type { PositionInfo } from "@/lib/contracts"
 import { fromSorobanAmount } from "@/shared/lib/bignum"
 
 export type Position = {
@@ -14,6 +14,7 @@ export type Position = {
   indexToken: string
   collateralToken: string
   collateralAmount: number
+  collateralUsd: number
   sizeUsd: number
   entryPrice: number
   markPrice: number
@@ -31,7 +32,7 @@ const USD_DECIMALS = 30
 const TOKEN_DECIMALS_DEFAULT = 7
 
 async function fetchPositions(account: string): Promise<Array<Position>> {
-  const reader = new SyntheticsReaderClient()
+  const reader = syntheticsReaderClient
   const rawPositions = await reader.getAccountPositions(account)
 
   return rawPositions
@@ -72,6 +73,7 @@ async function fetchPositions(account: string): Promise<Array<Position>> {
         indexToken: market?.indexTokenAddress ?? "",
         collateralToken: props.collateralToken,
         collateralAmount,
+        collateralUsd,
         sizeUsd,
         entryPrice,
         markPrice,

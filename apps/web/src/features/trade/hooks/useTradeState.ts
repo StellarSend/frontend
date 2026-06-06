@@ -9,6 +9,8 @@
 //     once state complexity grows — see GMX's SyntheticsStateContext pattern
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { CONTRACTS } from "@/app/config/contracts"
+import { POOL_MARKETS } from "@/features/pools/data/markets"
 import { useMarkets } from "./useMarkets"
 import { useTokenList } from "./useTokenList"
 
@@ -57,18 +59,19 @@ export type TradeState = {
 }
 
 const STORAGE_KEY = "so4-trade-state-v2"   // bumped from v1 (collateral shape changed)
+const DEFAULT_MARKET = POOL_MARKETS[0]!
+const DEFAULT_COLLATERALS = POOL_MARKETS.reduce<CollateralsByMarket>((acc, market) => {
+  acc[market.marketToken] = { long: market.longToken, short: market.shortToken }
+  return acc
+}, {})
 
 const DEFAULT_STATE: TradeState = {
   tradeType: "Long",
   tradeMode: "Market",
-  fromTokenAddress: "USDC",
-  toTokenAddress: "BTC",
-  marketAddress: "BTC-BTC-USDC",
-  collaterals: {
-    "BTC-BTC-USDC": { long: "BTC", short: "USDC" },
-    "ETH-ETH-USDC": { long: "ETH", short: "USDC" },
-    "XLM-XLM-USDC": { long: "XLM", short: "USDC" },
-  },
+  fromTokenAddress: CONTRACTS.tokens.tusdc,
+  toTokenAddress: DEFAULT_MARKET.indexToken,
+  marketAddress: DEFAULT_MARKET.marketToken,
+  collaterals: DEFAULT_COLLATERALS,
   fromAmount: "",
   toAmount: "",
   leverage: 10,
@@ -83,16 +86,33 @@ function loadFromStorage(): TradeState {
     if (!raw) return DEFAULT_STATE
 
     const parsed = JSON.parse(raw) as Partial<TradeState>
-    return {
+    return normalizeTradeState({
       ...DEFAULT_STATE,
       ...parsed,
+      collaterals: {
+        ...DEFAULT_COLLATERALS,
+        ...(parsed.collaterals ?? {}),
+      },
       advanced: {
         ...DEFAULT_STATE.advanced,
         ...(parsed.advanced ?? {}),
       },
-    }
+    })
   } catch {
     return DEFAULT_STATE
+  }
+}
+
+function normalizeTradeState(state: TradeState): TradeState {
+  const market = POOL_MARKETS.find((entry) => entry.marketToken === state.marketAddress)
+  if (market) return state
+
+  return {
+    ...state,
+    fromTokenAddress: CONTRACTS.tokens.tusdc,
+    toTokenAddress: DEFAULT_MARKET.indexToken,
+    marketAddress: DEFAULT_MARKET.marketToken,
+    collaterals: DEFAULT_COLLATERALS,
   }
 }
 
@@ -162,8 +182,8 @@ export function useTradeState() {
   const collateralAddress = useMemo(() => {
     const marketCollaterals = state.collaterals[state.marketAddress]
     return tradeFlags.isLong
-      ? (marketCollaterals.long ?? "USDC")
-      : (marketCollaterals.short ?? "USDC")
+      ? (marketCollaterals?.long ?? DEFAULT_MARKET.longToken)
+      : (marketCollaterals?.short ?? DEFAULT_MARKET.shortToken)
   }, [state.collaterals, state.marketAddress, tradeFlags.isLong])
 
   // When index token changes, pick first available market and set default collaterals
