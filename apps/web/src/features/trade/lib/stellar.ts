@@ -1,19 +1,26 @@
-import { formatUsd } from "@/shared/lib/format"
-import { NETWORK } from "@/app/config/network"
-import { queryClient } from "@/app/providers/QueryProvider"
 import { MARKETS } from "../data/markets"
 import {
-  buildCreateOrderTransaction,
-  buildCancelOrderTransaction,
+  encodeExecutionFeeXlm,
+  encodeOraclePrice,
+  encodeUsdAmount,
+  toCreateOrderParams,
+  toDecreaseOrderParams,
+  toSwapOrderParams,
+} from "./order-encoding"
+import { queryKeys } from "./query-keys"
+import type { CreateOrderParams, OrderKey } from "@/lib/contracts"
+import { NETWORK } from "@/app/config/network"
+import { queryClient } from "@/app/providers/QueryProvider"
+import { walletKit } from "@/features/wallet/lib/wallet-kit"
+import {
   buildBatchOrderTransaction,
+  buildCancelOrderTransaction,
   buildClaimFundingFeesTransaction,
+  buildCreateOrderTransaction,
+  parseSorobanError,
 } from "@/lib/contracts"
 import { prepareAndSign } from "@/lib/soroban/tx-builder"
-import { parseSorobanError } from "@/lib/contracts"
-import { walletKit } from "@/features/wallet/lib/wallet-kit"
-import { queryKeys } from "./query-keys"
-import { toCreateOrderParams, toDecreaseOrderParams, toSwapOrderParams, encodeOraclePrice, encodeUsdAmount, encodeExecutionFeeXlm } from "./order-encoding"
-import type { OrderKey } from "@/lib/contracts"
+import { formatUsd } from "@/shared/lib/format"
 import { submitTx } from "@/shared/hooks/useTxSubmit"
 
 const CHAIN_ID = "stellar-mainnet"
@@ -40,6 +47,7 @@ export type DecreaseOrderParams = {
   collateralToken: string
   collateralDeltaAmount: number
   sizeDeltaUsd: number
+  sizeDeltaUsdRaw?: bigint
   isLong: boolean
   acceptablePrice: number
   triggerPrice?: number
@@ -266,12 +274,10 @@ export async function createSidecarOrder(params: SidecarOrderParams): Promise<st
     throw new Error("Connect your wallet before placing a TP/SL order.")
   }
 
-  const market = MARKETS.find((m) => m.address === params.marketAddress)
-  const indexToken = market?.indexTokenAddress ?? params.marketAddress
-
   const sizeDeltaUsd = params.parentSizeUsd * (params.sizePct / 100)
-  const orderType = params.type === "takeProfit" ? "LimitDecrease" : "StopLossDecrease"
-  const triggerPrice = encodeOraclePrice(params.triggerPrice, indexToken)
+  const orderType: CreateOrderParams["orderType"] =
+    params.type === "takeProfit" ? "LimitDecrease" : "StopLossDecrease"
+  const triggerPrice = encodeOraclePrice(params.triggerPrice)
 
   // Slippage: ±0.5% around trigger for the acceptable price
   const slippage = 0.005
@@ -279,23 +285,22 @@ export async function createSidecarOrder(params: SidecarOrderParams): Promise<st
     params.isLong
       ? params.triggerPrice * (1 - slippage)   // long TP/SL — acceptable is below trigger
       : params.triggerPrice * (1 + slippage),  // short TP/SL — acceptable is above trigger
-    indexToken,
   )
 
   return submitTx(
     async () => {
-      const contractParams = {
+      const contractParams: CreateOrderParams = {
         receiver:               params.account,
         market:                 params.marketAddress,
         initialCollateralToken: params.collateralToken,
-        swapPath:               [] as string[],
+        swapPath:               [] as Array<string>,
         sizeDeltaUsd:           encodeUsdAmount(sizeDeltaUsd),
         collateralDeltaAmount:  0n,
         triggerPrice,
         acceptablePrice,
         executionFee:           encodeExecutionFeeXlm(),
         minOutputAmount:        0n,
-        orderType:              orderType as "LimitDecrease" | "StopLossDecrease",
+        orderType:              orderType,
         isLong:                 params.isLong,
       }
       const tx = await buildCreateOrderTransaction(params.account, contractParams)

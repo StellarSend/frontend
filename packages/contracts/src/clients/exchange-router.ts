@@ -2,6 +2,7 @@ import { Address, Contract, TransactionBuilder, rpc, xdr } from "@stellar/stella
 import type { Transaction } from "@stellar/stellar-sdk"
 import {
   createOrderArgs,
+  createOrderParamsVal,
   cancelOrderArgs,
   claimFundingFeesArgs,
 } from "../generated/exchange-router/src"
@@ -30,7 +31,7 @@ export type CreateWithdrawalParams = {
   executionFee?: bigint
 }
 
-type Config = NetworkConfig & { contractId: string }
+type Config = NetworkConfig & { contractId: string; orderVault?: string }
 
 function addr(a: string): xdr.ScVal {
   return new Address(a).toScVal()
@@ -58,6 +59,28 @@ function depositParamsMap(p: CreateDepositParams): xdr.ScVal {
     new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("receiver"),            val: addr(p.caller) }),
     new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("short_token_amount"),  val: i128(p.shortTokenAmount) }),
   ])
+}
+
+function sendTokensParamsMap(token: string, receiver: string, amount: bigint): xdr.ScVal {
+  return xdr.ScVal.scvMap([
+    new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("amount"), val: i128(amount) }),
+    new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("receiver"), val: addr(receiver) }),
+    new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("token"), val: addr(token) }),
+  ])
+}
+
+function routerAction(variantName: string, payload: xdr.ScVal): xdr.ScVal {
+  return xdr.ScVal.scvVec([xdr.ScVal.scvSymbol(variantName), payload])
+}
+
+function requiresCollateralTransfer(params: CreateOrderParams): boolean {
+  return params.collateralDeltaAmount > 0n && (
+    params.orderType === "MarketIncrease" ||
+    params.orderType === "LimitIncrease" ||
+    params.orderType === "StopIncrease" ||
+    params.orderType === "MarketSwap" ||
+    params.orderType === "LimitSwap"
+  )
 }
 
 function withdrawalParamsMap(p: CreateWithdrawalParams): xdr.ScVal {
@@ -114,6 +137,13 @@ export class ExchangeRouterClient {
   }
 
   buildCreateOrderTransaction(caller: string, params: CreateOrderParams): Promise<Transaction> {
+    if (requiresCollateralTransfer(params)) {
+      return this.buildMulticallTransaction(caller, [
+        this.sendTokensAction(params.initialCollateralToken, params.collateralDeltaAmount),
+        routerAction("CreateOrder", createOrderParamsVal(params)),
+      ])
+    }
+
     return this.buildAndSimulate(caller, createOrderArgs(caller, params), "create_order")
   }
 
@@ -131,27 +161,73 @@ export class ExchangeRouterClient {
     const sourceAccount = await this.server.getAccount(caller)
     const contract = new Contract(this.config.contractId)
 
-    let builder = new TransactionBuilder(sourceAccount, {
-      fee: "100",
-      networkPassphrase: this.config.networkPassphrase,
-    })
-
+    const multicallActions: Array<xdr.ScVal> = []
     for (const op of operations) {
       if (op.type === "createOrder") {
-        builder = builder.addOperation(
-          contract.call("create_order", ...createOrderArgs(caller, op.params)),
-        )
+        if (requiresCollateralTransfer(op.params)) {
+          multicallActions.push(
+            this.sendTokensAction(
+              op.params.initialCollateralToken,
+              op.params.collateralDeltaAmount,
+            ),
+          )
+        }
+        multicallActions.push(routerAction("CreateOrder", createOrderParamsVal(op.params)))
       } else {
-        builder = builder.addOperation(
-          contract.call("cancel_order", ...cancelOrderArgs(caller, op.key)),
-        )
+        multicallActions.push(routerAction("CancelOrder", cancelOrderArgs(caller, op.key)[1]))
       }
     }
 
-    const tx = builder.setTimeout(30).build()
+    const tx = new TransactionBuilder(sourceAccount, {
+      fee: "100",
+      networkPassphrase: this.config.networkPassphrase,
+    })
+      .addOperation(
+        contract.call(
+          "multicall",
+          addr(caller),
+          xdr.ScVal.scvVec(multicallActions),
+        ),
+      )
+      .setTimeout(30)
+      .build()
     const simulation = await this.server.simulateTransaction(tx)
     if (rpc.Api.isSimulationError(simulation)) {
       throw new Error(`Batch transaction simulation failed: ${simulation.error}`)
+    }
+    return rpc.assembleTransaction(tx, simulation).build()
+  }
+
+  private sendTokensAction(token: string, amount: bigint): xdr.ScVal {
+    const orderVault = this.config.orderVault
+    if (!orderVault) {
+      throw new Error("Order vault contract is required to fund create_order multicalls.")
+    }
+
+    return routerAction("SendTokens", sendTokensParamsMap(token, orderVault, amount))
+  }
+
+  private async buildMulticallTransaction(caller: string, actions: Array<xdr.ScVal>): Promise<Transaction> {
+    const sourceAccount = await this.server.getAccount(caller)
+    const contract = new Contract(this.config.contractId)
+
+    const tx = new TransactionBuilder(sourceAccount, {
+      fee: "100",
+      networkPassphrase: this.config.networkPassphrase,
+    })
+      .addOperation(
+        contract.call(
+          "multicall",
+          addr(caller),
+          xdr.ScVal.scvVec(actions),
+        ),
+      )
+      .setTimeout(180)
+      .build()
+
+    const simulation = await this.server.simulateTransaction(tx)
+    if (rpc.Api.isSimulationError(simulation)) {
+      throw new Error(`multicall simulation failed: ${simulation.error}`)
     }
     return rpc.assembleTransaction(tx, simulation).build()
   }

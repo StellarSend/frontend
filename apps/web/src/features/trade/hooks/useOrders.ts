@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
-import { useWalletStore } from "@/features/wallet/store/wallet-store"
-import { syntheticsReaderClient } from "@/lib/contracts"
-import type { OrderProps } from "@/lib/contracts"
-import { fromSorobanAmount } from "@/shared/lib/bignum"
 import { queryKeys } from "../lib/query-keys"
 import { MARKETS } from "../data/markets"
+import { useWalletStore } from "@/features/wallet/store/wallet-store"
+import { syntheticsReaderClient } from "@/lib/contracts"
+import { fromSorobanAmount } from "@/shared/lib/bignum"
 
 const USD_DECIMALS = 30
 const CHAIN_ID = "stellar-mainnet"
@@ -37,12 +36,15 @@ export type Order = {
 
 async function fetchOrders(account: string): Promise<Array<Order>> {
   const reader = syntheticsReaderClient
-  const raw: Array<OrderProps> = await reader.getAccountOrders(account)
+  const [raw, keys] = await Promise.all([
+    reader.getAccountOrders(account),
+    reader.getAccountOrderKeys(account),
+  ])
 
-  return raw.map((o): Order => {
+  return raw.map((o, index): Order => {
     const market = MARKETS.find((m) => m.address === o.market)
     return {
-      key: `${o.account}-${o.market}-${o.orderType}-${o.updatedAtTime}`,
+      key: keys[index] ?? "",
       account: o.account,
       marketAddress: o.market,
       marketName: market?.name ?? o.market,

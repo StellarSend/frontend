@@ -5,10 +5,11 @@ import type {
   FundingInfo,
   PositionInfo,
   OrderProps,
+  OrderKey,
 } from "../generated/synthetics-reader/src"
 import type { NetworkConfig } from "../types"
 
-export type { MarketProps, PoolValueInfo, FundingInfo, PositionInfo, OrderProps }
+export type { MarketProps, PoolValueInfo, FundingInfo, PositionInfo, OrderProps, OrderKey }
 
 type Config = NetworkConfig & {
   contractId: string
@@ -80,5 +81,11 @@ export class SyntheticsReaderClient {
 
   getAccountOrders(account: string, page = 1, pageSize = 50): Promise<Array<OrderProps>> {
     return this.client.getAccountOrders(this.dataStore, this.orderHandler, account, page, pageSize)
+  }
+
+  getAccountOrderKeys(account: string, page = 1, pageSize = 50): Promise<Array<OrderKey>> {
+    const start = (page - 1) * pageSize
+    const end = start + pageSize
+    return this.client.getAccountOrderKeys(this.dataStore, account, start, end)
   }
 }

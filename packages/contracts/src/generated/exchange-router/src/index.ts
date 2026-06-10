@@ -72,14 +72,9 @@ function i128(v: bigint): xdr.ScVal {
   )
 }
 
-/** Encode a Soroban #[contracttype] unit-enum variant as a single-entry Map. */
+/** Encode a Soroban #[contracttype] unit-enum variant. */
 function enumVal(variantName: string): xdr.ScVal {
-  return xdr.ScVal.scvMap([
-    new xdr.ScMapEntry({
-      key: xdr.ScVal.scvSymbol(variantName),
-      val: xdr.ScVal.scvVoid(),
-    }),
-  ])
+  return xdr.ScVal.scvVec([xdr.ScVal.scvSymbol(variantName)])
 }
 
 /**
@@ -109,8 +104,12 @@ export function createOrderArgs(
   caller: string,
   params: CreateOrderParams,
 ): Array<xdr.ScVal> {
+  return [addr(caller), createOrderParamsVal(params)]
+}
+
+export function createOrderParamsVal(params: CreateOrderParams): xdr.ScVal {
   // Fields must be in lexicographic order per Soroban Map encoding rules.
-  const paramsMap = xdr.ScVal.scvMap([
+  return xdr.ScVal.scvMap([
     new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("acceptable_price"),       val: i128(params.acceptablePrice) }),
     new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("collateral_delta_amount"), val: i128(params.collateralDeltaAmount) }),
     new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("execution_fee"),           val: i128(params.executionFee) }),
@@ -127,8 +126,6 @@ export function createOrderArgs(
     }),
     new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol("trigger_price"),           val: i128(params.triggerPrice) }),
   ])
-
-  return [addr(caller), paramsMap]
 }
 
 /**

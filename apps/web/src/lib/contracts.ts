@@ -8,10 +8,12 @@ import {
   SyntheticsReaderClient,
   TokenClient,
   VestingRouterClient,
-  type ExchangeCreateDepositParams,
-  type ExchangeCreateWithdrawalParams,
-  type OrderKey,
-  type CreateOrderParams,
+} from "@workspace/contracts"
+import type {
+  CreateOrderParams,
+  ExchangeCreateDepositParams,
+  ExchangeCreateWithdrawalParams,
+  OrderKey,
 } from "@workspace/contracts"
 import { CONTRACTS } from "@/app/config/contracts"
 import { NETWORK } from "@/app/config/network"
@@ -33,6 +35,7 @@ function requireContract(id: string, label: string): string {
 export const exchangeRouterClient = new ExchangeRouterClient({
   ...networkConfig,
   contractId: CONTRACTS.exchangeRouter,
+  orderVault: CONTRACTS.orderVault,
 })
 
 export const syntheticsReaderClient = new SyntheticsReaderClient({
@@ -215,7 +218,7 @@ export function buildRegisterCodeTransaction(account: string, code: string) {
   return referralStorageClient.buildRegisterCodeTransaction(account, code)
 }
 
-export function buildClaimRebatesTransaction(account: string, epochIds: string[]) {
+export function buildClaimRebatesTransaction(account: string, epochIds: Array<string>) {
   return referralStorageClient.buildClaimRebatesTransaction(account, epochIds)
 }
 

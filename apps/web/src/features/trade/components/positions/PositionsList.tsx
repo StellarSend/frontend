@@ -62,17 +62,22 @@ export function PositionsList({ onSelectPosition }: Props) {
   async function handleClose(position: Position) {
     setClosing(position.key)
     try {
-      // TODO: Open PositionSeller sheet/dialog instead of instant close
-      //   so the user can choose receive token and acceptable price
+      // 1% slippage: for a long close we sell at min_price, so acceptable = markPrice * 0.99
+      // for a short close we buy back at max_price, so acceptable = markPrice * 1.01
+      const closeAcceptablePrice = position.isLong
+        ? position.markPrice * 0.99
+        : position.markPrice * 1.01
+
       await createDecreaseOrder({
         account: position.account,
         positionKey: position.key,
         marketAddress: position.marketAddress,
         collateralToken: position.collateralToken,
-        collateralDeltaAmount: position.collateralAmount,
-        sizeDeltaUsd: position.sizeUsd, // full close
+        collateralDeltaAmount: 0, // 0 = let contract return all collateral on full close
+        sizeDeltaUsd: position.sizeUsd,
+        sizeDeltaUsdRaw: position.sizeInUsdRaw, // exact bigint avoids float64 precision loss
         isLong: position.isLong,
-        acceptablePrice: position.markPrice,
+        acceptablePrice: closeAcceptablePrice,
         orderType: "MarketDecrease",
         receiveToken: position.collateralToken,
       })

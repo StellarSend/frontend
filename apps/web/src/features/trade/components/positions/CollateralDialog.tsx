@@ -88,6 +88,10 @@ export function CollateralDialog({ position, mode, open, onClose }: Props) {
     setIsSubmitting(true)
     setErrorMsg(null)
     try {
+      // 1% slippage buffer so price fluctuation between submit and execution doesn't fail the order
+      const addAcceptable  = pos.isLong ? pos.markPrice * 1.01 : pos.markPrice * 0.99
+      const removeAcceptable = pos.isLong ? pos.markPrice * 0.99 : pos.markPrice * 1.01
+
       if (mode === "add") {
         await createIncreaseOrder({
           account,
@@ -96,7 +100,7 @@ export function CollateralDialog({ position, mode, open, onClose }: Props) {
           collateralAmount: amountNum,
           sizeDeltaUsd: 0, // collateral-only increase
           isLong: pos.isLong,
-          acceptablePrice: pos.markPrice,
+          acceptablePrice: addAcceptable,
           orderType: "MarketIncrease",
           leverage: Math.round(newLeverage),
         })
@@ -109,7 +113,7 @@ export function CollateralDialog({ position, mode, open, onClose }: Props) {
           collateralDeltaAmount: amountNum,
           sizeDeltaUsd: 0, // collateral-only decrease
           isLong: pos.isLong,
-          acceptablePrice: pos.markPrice,
+          acceptablePrice: removeAcceptable,
           orderType: "MarketDecrease",
           receiveToken: pos.collateralToken,
         })

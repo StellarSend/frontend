@@ -1,14 +1,13 @@
-import { toSorobanAmount } from "@/shared/lib/bignum"
-import { getMarket } from "../data/markets"
 import { getToken } from "../data/tokens"
 import type { CreateOrderParams } from "@/lib/contracts"
-import type { IncreaseOrderParams, DecreaseOrderParams, SwapOrderParams } from "./stellar"
+import type { DecreaseOrderParams, IncreaseOrderParams, SwapOrderParams } from "./stellar"
+import { toSorobanAmount } from "@/shared/lib/bignum"
 
 const USD_DECIMALS = 30
 const XLM_DECIMALS = 7
 const DEFAULT_EXECUTION_FEE_XLM = 0.3
 
-const TOKEN_DECIMALS: Record<string, number> = {
+const TOKEN_DECIMALS: Partial<Record<string, number>> = {
   BTC: 8,
   ETH: 18,
   XLM: 7,
@@ -16,11 +15,9 @@ const TOKEN_DECIMALS: Record<string, number> = {
   USDT: 7,
 }
 
-/** GMX-style on-chain price: usdPrice × 10^(30 − indexTokenDecimals). */
-export function encodeOraclePrice(usdPrice: number, indexToken: string): bigint {
-  const tokenDecimals = TOKEN_DECIMALS[indexToken] ?? 18
-  const scaleDecimals = Math.max(0, USD_DECIMALS - tokenDecimals)
-  return toSorobanAmount(usdPrice, scaleDecimals)
+/** Contract oracle prices are USD values with 30-decimal FLOAT_PRECISION. */
+export function encodeOraclePrice(usdPrice: number): bigint {
+  return toSorobanAmount(usdPrice, USD_DECIMALS)
 }
 
 export function encodeUsdAmount(usd: number): bigint {
@@ -41,12 +38,9 @@ export function encodeExecutionFeeXlm(xlm = DEFAULT_EXECUTION_FEE_XLM): bigint {
  * Aligns with the Rust CreateOrderParams struct in gmx_types.
  */
 export function toCreateOrderParams(params: IncreaseOrderParams): CreateOrderParams {
-  const market = getMarket(params.marketAddress)
-  const indexToken = market?.indexTokenAddress ?? params.marketAddress
-
   const triggerPrice =
     params.orderType === "LimitIncrease" && params.triggerPrice != null
-      ? encodeOraclePrice(params.triggerPrice, indexToken)
+      ? encodeOraclePrice(params.triggerPrice)
       : 0n
 
   return {
@@ -57,7 +51,7 @@ export function toCreateOrderParams(params: IncreaseOrderParams): CreateOrderPar
     sizeDeltaUsd:           encodeUsdAmount(params.sizeDeltaUsd),
     collateralDeltaAmount:  encodeTokenAmount(params.collateralAmount, params.collateralToken),
     triggerPrice,
-    acceptablePrice:        encodeOraclePrice(params.acceptablePrice, indexToken),
+    acceptablePrice:        encodeOraclePrice(params.acceptablePrice),
     executionFee:           encodeExecutionFeeXlm(),
     minOutputAmount:        0n,
     orderType:              params.orderType,
@@ -69,11 +63,8 @@ export function toCreateOrderParams(params: IncreaseOrderParams): CreateOrderPar
  * Map UI decrease-order params → ExchangeRouter.create_order contract params.
  */
 export function toDecreaseOrderParams(params: DecreaseOrderParams): CreateOrderParams {
-  const market = getMarket(params.marketAddress)
-  const indexToken = market?.indexTokenAddress ?? params.marketAddress
-
   const triggerPrice =
-    params.triggerPrice != null ? encodeOraclePrice(params.triggerPrice, indexToken) : 0n
+    params.triggerPrice != null ? encodeOraclePrice(params.triggerPrice) : 0n
 
   const orderType = params.orderType === "StopLoss" ? "StopLossDecrease" : params.orderType
 
@@ -82,13 +73,13 @@ export function toDecreaseOrderParams(params: DecreaseOrderParams): CreateOrderP
     market:                 params.marketAddress,
     initialCollateralToken: params.collateralToken,
     swapPath:               [],
-    sizeDeltaUsd:           encodeUsdAmount(params.sizeDeltaUsd),
+    sizeDeltaUsd:           params.sizeDeltaUsdRaw ?? encodeUsdAmount(params.sizeDeltaUsd),
     collateralDeltaAmount:  encodeTokenAmount(params.collateralDeltaAmount, params.collateralToken),
     triggerPrice,
-    acceptablePrice:        encodeOraclePrice(params.acceptablePrice, indexToken),
+    acceptablePrice:        encodeOraclePrice(params.acceptablePrice),
     executionFee:           encodeExecutionFeeXlm(),
     minOutputAmount:        0n,
-    orderType:              orderType as CreateOrderParams["orderType"],
+    orderType:              orderType,
     isLong:                 params.isLong,
   }
 }
