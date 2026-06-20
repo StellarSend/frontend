@@ -40,7 +40,7 @@ function Logo() {
         </svg>
       </span>
       <span className="font-mono-num text-[17px] font-medium tracking-[0.02em] text-foreground">
-        so4<span className="text-muted-foreground">.market</span>
+        so4<span className="text-muted-foreground max-[380px]:hidden">.market</span>
       </span>
     </Link>
   )
@@ -63,6 +63,18 @@ const APP_LINKS: Array<{ label: string; to: "/trade" | "/pools" | "/earn" | "/re
   { label: "Stats", to: null },
   { label: "Docs", to: null },
 ]
+
+const desktopAppLinkClass =
+  "relative inline-flex h-8 items-center rounded-md px-2 text-[13.5px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+
+const desktopAppLinkActiveClass =
+  "relative inline-flex h-8 items-center rounded-md bg-primary/10 px-2 text-[13.5px] font-medium text-foreground after:absolute after:inset-x-2 after:-bottom-[13px] after:h-0.5 after:rounded-full after:bg-primary"
+
+const mobileAppLinkClass =
+  "block rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+
+const mobileAppLinkActiveClass =
+  "block rounded-md bg-primary/10 px-3 py-2 text-sm font-medium text-foreground ring-1 ring-primary/20"
 
 type Props = {
   variant: "landing" | "app"
@@ -91,8 +103,9 @@ export function Navbar({ variant }: Props) {
                   {to ? (
                     <Link
                       to={to}
-                      className="text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
-                      activeProps={{ className: "text-[13.5px] text-foreground" }}
+                      className={desktopAppLinkClass}
+                      activeOptions={{ exact: true }}
+                      activeProps={{ className: desktopAppLinkActiveClass }}
                     >
                       {label}
                     </Link>
@@ -176,7 +189,9 @@ export function Navbar({ variant }: Props) {
                     {to ? (
                       <Link
                         to={to}
-                        className="block rounded py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        className={mobileAppLinkClass}
+                        activeOptions={{ exact: true }}
+                        activeProps={{ className: mobileAppLinkActiveClass }}
                         onClick={() => setMobileOpen(false)}
                       >
                         {label}
