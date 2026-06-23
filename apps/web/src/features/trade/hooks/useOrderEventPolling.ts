@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react"
 import { useQueryClient } from "@tanstack/react-query"
+import { queryKeys } from "../lib/query-keys"
 import { CONTRACTS } from "@/app/config/contracts"
 import { sorobanRpc } from "@/lib/soroban/client"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
-import { queryKeys } from "../lib/query-keys"
 
 const CHAIN_ID = "stellar-mainnet"
 const POLL_INTERVAL_MS = 5000
@@ -47,7 +47,7 @@ export function useOrderEventPolling() {
 
         const matching = (Array.isArray(events) ? events : []).filter((event) => {
           const text = extractEventText(event).toLowerCase()
-          const name = String((event as any)?.data?.event_name ?? (event as any)?.data?.type ?? (event as any)?.type ?? "").toLowerCase()
+          const name = String(event?.data?.event_name ?? event?.data?.type ?? event?.type ?? "").toLowerCase()
           const isOrderEvent = TARGET_EVENTS.some((target) => name.includes(target.toLowerCase()) || text.includes(target.toLowerCase()))
           const isForAccount = account ? text.includes(account.toLowerCase()) : false
           return isOrderEvent && isForAccount

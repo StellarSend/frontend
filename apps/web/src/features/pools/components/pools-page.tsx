@@ -1,12 +1,12 @@
 import { Link } from "@tanstack/react-router"
-import { Navbar } from "@/ui/Navbar"
-import { NetworkMismatchBanner } from "@/features/wallet/components/NetworkMismatchBanner"
-import { formatUsd } from "@/shared/lib/format"
 import { usePoolsData } from "../hooks/use-pools-data"
 import { usePoolsTimeRange } from "../hooks/use-pools-time-range"
 import { PoolsCard } from "./pools-card"
 import { PoolsTimeRangeFilter } from "./pools-time-range-filter"
 import { GmPoolsTable } from "./gm-pools-table"
+import { Navbar } from "@/ui/Navbar"
+import { NetworkMismatchBanner } from "@/features/wallet/components/NetworkMismatchBanner"
+import { formatUsd } from "@/shared/lib/format"
 
 export function PoolsPage() {
   const { timeRange, setTimeRange, options } = usePoolsTimeRange()

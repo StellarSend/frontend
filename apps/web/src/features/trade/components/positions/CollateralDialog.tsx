@@ -9,13 +9,13 @@ import {
 } from "@workspace/ui/components/dialog"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
-import { useWalletStore } from "@/features/wallet/store/wallet-store"
-import { useTokenBalances } from "@/features/wallet/hooks/useTokenBalances"
 import { useTokenPrices } from "../../hooks/useTokenPrices"
-import { createIncreaseOrder, createDecreaseOrder } from "../../lib/stellar"
-import { formatUsd } from "@/shared/lib/format"
+import { createDecreaseOrder, createIncreaseOrder } from "../../lib/stellar"
 import { queryKeys } from "../../lib/query-keys"
 import type { Position } from "../../hooks/usePositions"
+import { formatUsd } from "@/shared/lib/format"
+import { useTokenBalances } from "@/features/wallet/hooks/useTokenBalances"
+import { useWalletStore } from "@/features/wallet/store/wallet-store"
 
 type Props = {
   position: Position | null
@@ -54,7 +54,7 @@ export function CollateralDialog({ position, mode, open, onClose }: Props) {
   let newCollateralUsd = position.collateralUsd
   if (mode === "add") {
     newCollateralUsd = position.collateralUsd + deltaUsd
-  } else if (mode === "remove") {
+  } else {
     newCollateralUsd = Math.max(0, position.collateralUsd - deltaUsd)
   }
 
@@ -71,7 +71,7 @@ export function CollateralDialog({ position, mode, open, onClose }: Props) {
         isValid = false
         validationError = "Insufficient wallet balance"
       }
-    } else if (mode === "remove") {
+    } else {
       if (amountNum >= position.collateralAmount) {
         isValid = false
         validationError = "Cannot remove all collateral (Close position instead)"

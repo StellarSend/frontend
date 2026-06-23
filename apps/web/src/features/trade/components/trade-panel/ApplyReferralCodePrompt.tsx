@@ -1,15 +1,14 @@
 import { useState } from "react"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   applyReferralCode,
   hasCompletedReferralPrompt,
   markReferralPromptComplete,
   validateReferralCode,
 } from "@/features/referrals/lib/referrals"
-import { getTraderReferralCode } from "@/lib/contracts"
-import { readStoredReferralCode } from "@/lib/contracts"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { getTraderReferralCode, readStoredReferralCode } from "@/lib/contracts"
 import { queryKeys } from "@/shared/lib/query-keys"
 
 type Props = {

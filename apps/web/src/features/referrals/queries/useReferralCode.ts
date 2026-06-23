@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
+import { readStoredAffiliateCode } from "../lib/referrals"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
 import { referralStorageClient } from "@/lib/contracts"
-import { readStoredAffiliateCode } from "../lib/referrals"
 import { queryKeys } from "@/shared/lib/query-keys"
 
 /**

@@ -4,16 +4,16 @@ import { Button } from "@workspace/ui/components/button"
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@workspace/ui/components/dialog"
 import { Input } from "@workspace/ui/components/input"
 import { usePoolsApy } from "../../hooks/use-earn-data"
 import { depositGLV, depositGM } from "../../lib/earn"
-import { formatPct, formatUsd, formatToken } from "@/shared/lib/format"
 import { useMarketPoolAmounts } from "../../hooks/useMarketPoolAmounts"
 import { useGLVVaultData, useGMPoolData, useStakingInfo } from "../../queries"
+import { formatPct, formatToken, formatUsd } from "@/shared/lib/format"
 import { fromSorobanAmount } from "@/shared/lib/bignum"
 import { TokenIcon } from "@/shared/components/TokenIcon"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"

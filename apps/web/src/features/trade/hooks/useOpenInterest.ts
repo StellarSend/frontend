@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
+import { queryKeys } from "../lib/query-keys"
 import { fromSorobanAmount } from "@/shared/lib/bignum"
 import { syntheticsReaderClient } from "@/lib/contracts"
-import { queryKeys } from "../lib/query-keys"
 
 const USD_DECIMALS = 30
 

@@ -22,10 +22,10 @@ export function useStakingInfo() {
       const info = await stakingRouter.getStakerInfo(address!)
 
       return {
-        stakedSO4: info.stakedSO4 ?? info.stakedAmount,
-        stakedEsSO4: info.stakedEsSO4 ?? info.esSO4Balance,
+        stakedSO4: info.stakedSO4,
+        stakedEsSO4: info.stakedEsSO4,
         stakedMultiplierPoints: info.stakedMultiplierPoints,
-        pendingEsSO4Rewards: info.pendingEsSO4Rewards ?? info.accruedRewards,
+        pendingEsSO4Rewards: info.pendingEsSO4Rewards,
         pendingWethFees: info.pendingWethFees,
       }
     },

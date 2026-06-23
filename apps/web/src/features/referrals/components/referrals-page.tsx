@@ -5,11 +5,11 @@ import { Navbar } from "../../../ui/Navbar"
 import { useTraderStats } from "../hooks/use-referrals-data"
 import { useReferralCode } from "../queries/useReferralCode"
 import { useReferralTier } from "../queries/useReferralTier"
-import { queryKeys } from "@/shared/lib/query-keys"
 import { TradersTab } from "./traders/traders-tab"
 import { AffiliatesTab } from "./affiliates/affiliates-tab"
 import { DistributionsTab } from "./distributions/distributions-tab"
 import { ReferralsSidebar } from "./referrals-sidebar"
+import { queryKeys } from "@/shared/lib/query-keys"
 
 type ReferralsTab = "traders" | "affiliates" | "distributions"
 

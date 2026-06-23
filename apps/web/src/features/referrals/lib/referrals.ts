@@ -1,16 +1,14 @@
 import { queryClient } from "@/app/providers/QueryProvider"
 import { NETWORK } from "@/app/config/network"
 import { prepareAndSign } from "@/lib/soroban/tx-builder"
-import { parseSorobanError } from "@/lib/contracts"
 import {
   affiliateCodeStorageKey,
-  referralPromptStorageKey,
-} from "@/lib/contracts"
-import {
   buildClaimRebatesTransaction,
   buildRegisterCodeTransaction,
   buildSetTraderReferralCodeTransaction,
   mapContractError,
+  parseSorobanError,
+  referralPromptStorageKey,
 } from "@/lib/contracts"
 import { submitTx } from "@/shared/hooks/useTxSubmit"
 import { queryKeys } from "@/shared/lib/query-keys"
@@ -93,7 +91,7 @@ export async function createAffiliateCode(account: string, code: string): Promis
   )
 }
 
-export async function claimRebates(account: string, epochIds: string[]): Promise<string> {
+export async function claimRebates(account: string, epochIds: Array<string>): Promise<string> {
   if (!isValidAccount(account)) {
     throw new Error("Connect your wallet before claiming rebates.")
   }

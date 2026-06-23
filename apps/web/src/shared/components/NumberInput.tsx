@@ -1,7 +1,7 @@
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
-import { formatUsd } from "@/shared/lib/format"
 import type { ComponentPropsWithoutRef } from "react"
+import { formatUsd } from "@/shared/lib/format"
 
 type NumberInputProps = Omit<ComponentPropsWithoutRef<"input">, "onChange" | "type"> & {
   value: string

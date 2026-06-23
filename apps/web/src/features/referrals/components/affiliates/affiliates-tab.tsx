@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@workspace/ui/components/button"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { cn } from "@workspace/ui/lib/utils"
@@ -6,15 +7,14 @@ import { useAffiliateReferrals } from "../../hooks/use-referrals-data"
 import { useReferralCode } from "../../queries/useReferralCode"
 import { useReferralStats } from "../../queries/useReferralStats"
 import { useReferralTier } from "../../queries/useReferralTier"
-import { useWalletStore } from "@/features/wallet/store/wallet-store"
 import { createAffiliateCode, validateReferralCode } from "../../lib/referrals"
-import { useQueryClient } from "@tanstack/react-query"
-import { queryKeys } from "@/shared/lib/query-keys"
 import { TIERS, getNextTier, getTierByLevel } from "../../data/tiers"
 import { TimePeriodFilter } from "../shared/time-period-filter"
 import { StatChartCard } from "../shared/stat-chart-card"
-import type {TimePeriod} from "../../hooks/use-referrals-data";
+import type { TimePeriod } from "../../hooks/use-referrals-data"
 import { formatAddress, formatUsd } from "@/shared/lib/format"
+import { queryKeys } from "@/shared/lib/query-keys"
+import { useWalletStore } from "@/features/wallet/store/wallet-store"
 
 
 

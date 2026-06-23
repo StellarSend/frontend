@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   // Determine the target network (e.g. "testnet", "mainnet") from VITE_NETWORK
   // or fall back to the Vite mode string.
   const baseEnv = loadEnv(mode, process.cwd(), "VITE_")
-  const network = baseEnv.VITE_NETWORK ?? mode
+  const network = baseEnv.VITE_NETWORK
 
   // Load network-specific env overrides from .env.{network}
   const networkEnv = loadEnv(network, process.cwd(), "VITE_")

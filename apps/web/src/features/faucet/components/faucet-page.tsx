@@ -1,5 +1,9 @@
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Button } from "@workspace/ui/components/button"
+import { FAUCET_TOKENS, type FaucetTokenConfig } from "../data/tokens" // eslint-disable-line import/consistent-type-specifier-style
+import { FAUCET_CONTRACT_ID } from "../lib/clients"
+import { useFaucetData } from "../hooks/useFaucetData"
+import { useClaim } from "../hooks/useClaim"
 import { Navbar } from "@/ui/Navbar"
 import { TokenIcon } from "@/shared/components/TokenIcon"
 import { formatToken } from "@/shared/lib/format"
@@ -8,10 +12,6 @@ import { useWalletStore } from "@/features/wallet/store/wallet-store"
 import { useNetwork } from "@/features/wallet/hooks/useNetwork"
 import { NetworkMismatchBanner } from "@/features/wallet/components/NetworkMismatchBanner"
 import { ConnectButton } from "@/features/wallet/components/ConnectButton"
-import { FAUCET_TOKENS, type FaucetTokenConfig } from "../data/tokens"
-import { FAUCET_CONTRACT_ID } from "../lib/clients"
-import { useFaucetData } from "../hooks/useFaucetData"
-import { useClaim } from "../hooks/useClaim"
 
 // ── Token card ────────────────────────────────────────────────────────────────
 
@@ -90,7 +90,14 @@ function TokenCard({
           disabled={isDisabled || isPending}
           onClick={() => onClaim(token)}
         >
-          Claim
+          {isPending ? (
+            <span className="flex items-center gap-1.5">
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Claiming
+            </span>
+          ) : (
+            "Claim"
+          )}
         </Button>
       </div>
     </div>
@@ -104,10 +111,10 @@ export function FaucetPage() {
   const isConnected = useWalletStore((state) => state.status === "connected")
   const { mismatch } = useNetwork()
   const { data, isLoading } = useFaucetData(address)
-  const { claim, isPending } = useClaim()
+  const { claimOne, claimAll, pendingTokens, isBulkPending } = useClaim()
 
   const isTestnet = NETWORK.name === "testnet"
-  const claimDisabled = !isConnected || isPending || mismatch
+  const claimDisabled = !isConnected || mismatch
 
   return (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
@@ -148,9 +155,9 @@ export function FaucetPage() {
                   lastClaimLedger={data?.lastClaimLedgers[token.symbol]}
                   cooldownLedgers={data?.cooldownLedgers}
                   isLoading={isLoading}
-                  isPending={isPending}
+                  isPending={pendingTokens.has(token.contractId) || isBulkPending}
                   isDisabled={claimDisabled}
-                  onClaim={(selectedToken) => claim([selectedToken.contractId])}
+                  onClaim={(selectedToken) => claimOne(selectedToken.contractId)}
                 />
               ))}
             </div>
@@ -181,10 +188,10 @@ export function FaucetPage() {
                   <Button
                     variant="default"
                     className="w-full"
-                    disabled={claimDisabled}
-                    onClick={() => claim()}
+                    disabled={claimDisabled || isBulkPending}
+                    onClick={() => claimAll()}
                   >
-                    {isPending ? (
+                    {isBulkPending ? (
                       <span className="flex items-center gap-2">
                         <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                         Claiming…

@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
+import type { PoolMarketConfig } from "../data/markets"
 import type { FundingInfo, MarketProps, PoolValueInfo } from "@/lib/contracts"
 import { getTokenClient, syntheticsReaderClient } from "@/lib/contracts"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
 import { queryKeys } from "@/shared/lib/query-keys"
-import type { PoolMarketConfig } from "../data/markets"
 
 export type PoolRowData = {
   market: MarketProps | null

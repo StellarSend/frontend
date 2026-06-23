@@ -9,10 +9,10 @@
 //     once state complexity grows — see GMX's SyntheticsStateContext pattern
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { CONTRACTS } from "@/app/config/contracts"
-import { POOL_MARKETS } from "@/features/pools/data/markets"
 import { useMarkets } from "./useMarkets"
 import { useTokenList } from "./useTokenList"
+import { CONTRACTS } from "@/app/config/contracts"
+import { POOL_MARKETS } from "@/features/pools/data/markets"
 
 export type TradeType = "Long" | "Short" | "Swap"
 export type TradeMode = "Market" | "Limit" | "Trigger"
@@ -59,7 +59,7 @@ export type TradeState = {
 }
 
 const STORAGE_KEY = "so4-trade-state-v2"   // bumped from v1 (collateral shape changed)
-const DEFAULT_MARKET = POOL_MARKETS[0]!
+const DEFAULT_MARKET = POOL_MARKETS[0]
 const DEFAULT_COLLATERALS = POOL_MARKETS.reduce<CollateralsByMarket>((acc, market) => {
   acc[market.marketToken] = { long: market.longToken, short: market.shortToken }
   return acc
@@ -182,8 +182,8 @@ export function useTradeState() {
   const collateralAddress = useMemo(() => {
     const marketCollaterals = state.collaterals[state.marketAddress]
     return tradeFlags.isLong
-      ? (marketCollaterals?.long ?? DEFAULT_MARKET.longToken)
-      : (marketCollaterals?.short ?? DEFAULT_MARKET.shortToken)
+      ? marketCollaterals.long
+      : marketCollaterals.short
   }, [state.collaterals, state.marketAddress, tradeFlags.isLong])
 
   // When index token changes, pick first available market and set default collaterals
@@ -191,14 +191,12 @@ export function useTradeState() {
     (address: string) => {
       const marketsList = getMarketsForIndexToken(address)
       const market = marketsList[0]
-      const marketAddress = market?.address ?? state.marketAddress
+      const marketAddress = market.address
 
       const collaterals = { ...state.collaterals }
-      if (market) {
-        collaterals[market.address] = {
-          long: market.longTokenAddress,
-          short: market.shortTokenAddress,
-        }
+      collaterals[market.address] = {
+        long: market.longTokenAddress,
+        short: market.shortTokenAddress,
       }
 
       update({ toTokenAddress: address, marketAddress, collaterals })

@@ -1,5 +1,4 @@
-import { FaucetContractClient as FaucetClient } from "@workspace/contracts"
-import { TestTokenContractClient as TokenClient } from "@workspace/contracts"
+import { FaucetContractClient as FaucetClient, TestTokenContractClient as TokenClient } from "@workspace/contracts"
 import { CONTRACTS } from "@/app/config/contracts"
 import { NETWORK } from "@/app/config/network"
 

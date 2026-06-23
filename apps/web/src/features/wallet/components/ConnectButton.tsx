@@ -12,12 +12,12 @@ import {
 } from "@workspace/ui/components/dialog"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { createSep7ConnectUri, createSep7TransactionUri } from "../lib/sep7"
-import { useWalletStore } from "../store/wallet-store"
-import { useBalance } from "../hooks/useBalance"
 import { useKeyboardShortcut } from "@/shared/hooks/useKeyboardShortcut"
 import { useWallet } from "@/app/providers"
 import { NETWORK } from "@/app/config/network"
+import { createSep7ConnectUri, createSep7TransactionUri } from "../lib/sep7"
+import { useBalance } from "../hooks/useBalance"
+import { useWalletStore } from "../store/wallet-store"
 import type { ComponentProps } from "react"
 
 type ConnectButtonProps = Omit<

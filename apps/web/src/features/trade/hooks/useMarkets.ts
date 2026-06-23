@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
 import { useMemo } from "react"
 import { MARKETS } from "../data/markets"
-import type { Market } from "../data/markets"
-import { useTokenList } from "./useTokenList"
-import { syntheticsReaderClient } from "@/lib/contracts"
 import { queryKeys } from "../lib/query-keys"
+import { useTokenList } from "./useTokenList"
+import type { Market } from "../data/markets"
+import { syntheticsReaderClient } from "@/lib/contracts"
 
 async function fetchMarkets(): Promise<Array<Market>> {
   const client = syntheticsReaderClient
@@ -16,7 +16,7 @@ async function fetchMarkets(): Promise<Array<Market>> {
   )
   // Fall back to static entry for any market whose RPC call failed.
   return results.map((result, i) =>
-    result.status === "fulfilled" ? result.value : MARKETS[i]!,
+    result.status === "fulfilled" ? result.value : MARKETS[i],
   )
 }
 

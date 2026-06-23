@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
 import { queryKeys } from "../lib/query-keys"
 import { MARKETS } from "../data/markets"
-import { useWalletStore } from "@/features/wallet/store/wallet-store"
-import { syntheticsReaderClient } from "@/lib/contracts"
-import type { PositionInfo } from "@/lib/contracts"
-import { fromSorobanAmount } from "@/shared/lib/bignum"
 import { useTokenPrices } from "./useTokenPrices"
+import type { PositionInfo } from "@/lib/contracts"
+import { syntheticsReaderClient } from "@/lib/contracts"
+import { useWalletStore } from "@/features/wallet/store/wallet-store"
+import { fromSorobanAmount } from "@/shared/lib/bignum"
 
 export type Position = {
   key: string

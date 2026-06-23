@@ -1,5 +1,6 @@
-import { createContext, useContext, useMemo, type ReactNode } from "react"
+import { createContext, useContext, useMemo } from "react"
 import { useWalletStore } from "../store/wallet-store"
+import type { ReactNode } from "react"
 
 type WalletStatus = "disconnected" | "connecting" | "connected" | "error"
 

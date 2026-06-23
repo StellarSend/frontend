@@ -1,4 +1,4 @@
-import { Account, Contract, rpc, scValToNative, TransactionBuilder, xdr } from "@stellar/stellar-sdk"
+import { Account, Contract, TransactionBuilder, rpc, scValToNative, xdr } from "@stellar/stellar-sdk"
 import { CONTRACTS } from "@/app/config/contracts"
 import { NETWORK } from "@/app/config/network"
 import { sorobanRpc } from "@/lib/soroban/client"
@@ -61,7 +61,7 @@ async function dataStoreGetBool(key: Buffer): Promise<boolean> {
   return Boolean(scValToNative(retval))
 }
 
-export async function fetchFeeConfig(_marketAddress: string): Promise<FeeConfig> {
+export function fetchFeeConfig(_marketAddress: string): FeeConfig {
   return { ...DEFAULT_FEE_CONFIG }
 }
 

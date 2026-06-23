@@ -1,6 +1,6 @@
 import { HermesClient } from "@pythnetwork/hermes-client"
-import { ENV } from "@/app/config/env"
 import { getMarket } from "../data/markets"
+import { ENV } from "@/app/config/env"
 
 /** Pyth price feed IDs (hex, with 0x prefix). */
 export const PYTH_FEED_IDS: Record<string, string> = {
@@ -97,7 +97,7 @@ export async function fetchPythAttestations(
     if (!feedId) continue
 
     const row = byFeedId.get(feedId)
-    if (!row?.entry?.price || !row.binary) continue
+    if (!row?.entry.price || !row.binary) continue
 
     const { price, conf } = row.entry.price
     const expo = row.entry.price.expo

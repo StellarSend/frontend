@@ -91,7 +91,7 @@ export function AssetsList() {
   const [pending, setPending] = useState<string | null>(null)
 
   const isLoading = gmLoading || glvLoading || so4Loading
-  const hasSO4 = (so4Stats?.stakedAmount ?? 0) > 0
+  const hasSO4 = so4Stats.stakedAmount > 0
   const hasAny = hasSO4 || gmPositions.length > 0 || glvPositions.length > 0
 
   async function runAction(key: string, fn: () => Promise<unknown>) {
@@ -134,7 +134,7 @@ export function AssetsList() {
                   </td>
                   <td className="px-5 py-3.5 text-right font-mono text-muted-foreground">—</td>
                   <td className="px-5 py-3.5 text-right font-mono">
-                    {formatUsd(so4Stats?.stakedValueUsd ?? 0)}
+                    {formatUsd(so4Stats.stakedValueUsd)}
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <Button
@@ -143,7 +143,7 @@ export function AssetsList() {
                       disabled={pending === "so4"}
                       onClick={() =>
                         void runAction("so4", () =>
-                          unstakeSO4("DUMMY_ACCOUNT", so4Stats?.stakedAmount ?? 0),
+                          unstakeSO4("DUMMY_ACCOUNT", so4Stats.stakedAmount),
                         )
                       }
                     >

@@ -1,5 +1,5 @@
-import { NETWORK } from "@/app/config/network"
 import type { SigningWallet } from "@/lib/soroban/tx-builder"
+import { NETWORK } from "@/app/config/network"
 
 /**
  * Wallet adapter used by prepareAndSign() for Soroban write transactions.

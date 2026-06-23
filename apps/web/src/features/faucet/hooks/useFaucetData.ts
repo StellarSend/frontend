@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
-import { queryKeys } from "@/shared/lib/query-keys"
-import { FAUCET_TOKENS, type FaucetTokenSymbol } from "../data/tokens"
+import { FAUCET_TOKENS, type FaucetTokenSymbol } from "../data/tokens" // eslint-disable-line import/consistent-type-specifier-style
 import {
   createFaucetClient,
   createTokenClient,
   fromContractAmount,
 } from "../lib/clients"
+import { queryKeys } from "@/shared/lib/query-keys"
 
 export type FaucetData = {
   balances: Record<FaucetTokenSymbol, number>
@@ -44,10 +44,10 @@ async function fetchFaucetData(address: string | null): Promise<FaucetData> {
   const lastClaimLedgers = {} as Record<FaucetTokenSymbol, number | null>
 
   FAUCET_TOKENS.forEach((token, index) => {
-    const balanceTx = balanceTxs[index]
-    const lastClaimTx = lastClaimTxs[index]
-    balances[token.symbol] = fromContractAmount((balanceTx?.result as bigint | undefined) ?? 0n)
-    claimAmounts[token.symbol] = fromContractAmount(claimTxs[index]?.result as bigint)
+    const balanceTx = balanceTxs.at(index)
+    const lastClaimTx = lastClaimTxs.at(index)
+    balances[token.symbol] = fromContractAmount(balanceTx?.result ?? 0n)
+    claimAmounts[token.symbol] = fromContractAmount(claimTxs[index].result)
     lastClaimLedgers[token.symbol] = lastClaimTx ? Number(lastClaimTx.result) : null
   })
 

@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
-import { referralStorageClient } from "@/lib/contracts"
-import { getAffiliateCode, getTraderDiscountBps, getTraderReferralCode } from "@/lib/contracts"
+import { getAffiliateCode, getTraderDiscountBps, getTraderReferralCode, referralStorageClient } from "@/lib/contracts"
 
 export type TimePeriod = "24h" | "7d" | "30d" | "90d" | "total"
 

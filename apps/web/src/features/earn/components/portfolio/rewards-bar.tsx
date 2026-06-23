@@ -80,7 +80,7 @@ export function RewardsBar() {
     }
   }
 
-  const hasPendingRewards = (stats?.totalPendingRewardsUsd ?? 0) > 0
+  const hasPendingRewards = stats.totalPendingRewardsUsd > 0
 
   return (
     <div className="space-y-3">
@@ -116,7 +116,7 @@ export function RewardsBar() {
       <div className="flex flex-wrap items-center gap-x-8 gap-y-4 rounded-xl border border-border bg-card px-6 py-4">
         <StatItem
           label="Total investment value"
-          value={formatUsd(stats?.totalInvestmentUsd ?? 0)}
+          value={formatUsd(stats.totalInvestmentUsd)}
           isLoading={isLoading}
         />
 
@@ -124,7 +124,7 @@ export function RewardsBar() {
 
         <StatItem
           label="Total earned"
-          value={formatUsd(stats?.totalEarnedUsd ?? 0)}
+          value={formatUsd(stats.totalEarnedUsd)}
           isLoading={isLoading}
         />
 
@@ -132,7 +132,7 @@ export function RewardsBar() {
 
         <StatItem
           label="Total pending rewards"
-          value={formatUsd(stats?.totalPendingRewardsUsd ?? 0)}
+          value={formatUsd(stats.totalPendingRewardsUsd)}
           isLoading={isLoading}
         />
 
@@ -140,7 +140,7 @@ export function RewardsBar() {
 
         <StatItem
           label="Staking Power Share"
-          value={formatPct(stats?.stakingPowerSharePct ?? 0, { sign: false })}
+          value={formatPct(stats.stakingPowerSharePct, { sign: false })}
           isLoading={isLoading}
         />
 
