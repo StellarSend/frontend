@@ -3,9 +3,9 @@ import {
   StellarHandlerKind,
   StellarProject,
 } from "@subql/types-stellar";
-import { Horizon } from "@stellar/stellar-sdk";
 
 import * as dotenv from 'dotenv';
+import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 
 const mode = process.env.NODE_ENV || 'production';
@@ -14,12 +14,38 @@ const mode = process.env.NODE_ENV || 'production';
 const dotenvPath = path.resolve(__dirname, `.env${mode !== 'production' ? `.${mode}` : ''}`);
 dotenv.config({ path: dotenvPath, quiet: true });
 
+type IndexerContractsConfig = {
+  network?: {
+    name?: string;
+    passphrase?: string;
+    horizonEndpoint?: string;
+    sorobanRpcEndpoint?: string;
+  };
+  contracts?: Record<string, string>;
+  tokens?: Record<string, string>;
+  markets?: Array<{
+    name: string;
+    marketToken: string;
+    indexToken: string;
+    longToken: string;
+    shortToken: string;
+  }>;
+};
+
+const contractConfig = loadContractConfig();
 const endpoint =
-  process.env.ENDPOINT ?? "https://horizon-testnet.stellar.org";
+  process.env.ENDPOINT ??
+  contractConfig?.network?.horizonEndpoint ??
+  "https://horizon-testnet.stellar.org";
 const chainId =
-  process.env.CHAIN_ID ?? "Test SDF Network ; September 2015";
+  process.env.CHAIN_ID ??
+  contractConfig?.network?.passphrase ??
+  "Test SDF Network ; September 2015";
 const sorobanEndpoint =
-  process.env.SOROBAN_ENDPOINT ?? "https://soroban-testnet.stellar.org";
+  process.env.SOROBAN_ENDPOINT ??
+  contractConfig?.network?.sorobanRpcEndpoint ??
+  "https://soroban-testnet.stellar.org";
+const indexedContractIds = getIndexedContractIds(contractConfig);
 
 /* This is your project configuration */
 const project: StellarProject = {
@@ -68,40 +94,13 @@ const project: StellarProject = {
       startBlock: 228206,
       mapping: {
         file: "./dist/index.js",
-        handlers: [
-          {
-            handler: "handleOperation",
-            kind: StellarHandlerKind.Operation,
-            filter: {
-              type: Horizon.HorizonApi.OperationResponseType.payment,
-            },
+        handlers: indexedContractIds.map((contractId) => ({
+          handler: "handleEvent",
+          kind: StellarHandlerKind.Event,
+          filter: {
+            contractId,
           },
-          {
-            handler: "handleCredit",
-            kind: StellarHandlerKind.Effects,
-            filter: {
-              type: "account_credited",
-            },
-          },
-          {
-            handler: "handleDebit",
-            kind: StellarHandlerKind.Effects,
-            filter: {
-              type: "account_debited",
-            },
-          },
-          {
-            handler: "handleEvent",
-            kind: StellarHandlerKind.Event,
-            filter: {
-              /* You can optionally specify a smart contract address here
-                contractId: "" */
-              topics: [
-                "transfer", // Topic signature(s) for the events, there can be up to 4
-              ],
-            },
-          },
-        ],
+        })),
       },
     },
   ],
@@ -109,3 +108,39 @@ const project: StellarProject = {
 
 // Must set default to the project instance
 export default project;
+
+function loadContractConfig(): IndexerContractsConfig | undefined {
+  const network = process.env.INDEXER_NETWORK ?? "testnet";
+  const configPath = process.env.INDEXER_CONTRACTS_CONFIG
+    ? path.resolve(process.cwd(), process.env.INDEXER_CONTRACTS_CONFIG)
+    : path.resolve(__dirname, "config", `contracts.${network}.json`);
+
+  if (!existsSync(configPath)) {
+    return undefined;
+  }
+
+  return JSON.parse(readFileSync(configPath, "utf8")) as IndexerContractsConfig;
+}
+
+function getIndexedContractIds(config: IndexerContractsConfig | undefined): string[] {
+  if (!config) {
+    const fallbackContractId = process.env.INDEXER_CONTRACT_ID;
+    return fallbackContractId ? [fallbackContractId] : [];
+  }
+
+  const ids = new Set<string>();
+  for (const value of Object.values(config.contracts ?? {})) {
+    ids.add(value);
+  }
+  for (const value of Object.values(config.tokens ?? {})) {
+    ids.add(value);
+  }
+  for (const market of config.markets ?? []) {
+    ids.add(market.marketToken);
+    ids.add(market.indexToken);
+    ids.add(market.longToken);
+    ids.add(market.shortToken);
+  }
+
+  return [...ids].sort();
+}

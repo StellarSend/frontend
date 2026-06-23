@@ -80,6 +80,11 @@ export async function handleEvent(event: SorobanEvent): Promise<void> {
 
   // Get data from the event
   // The transfer event has the following payload \[env, from, to\]
+  if (event.topic.length < 3) {
+    logger.info(`Event ${event.id} does not match transfer topic shape, skipping`);
+    return;
+  }
+
   const {
     topic: [env, from, to],
   } = event;

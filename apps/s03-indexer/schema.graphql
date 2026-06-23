@@ -1,82 +1,185 @@
-# To improve query performance, we strongly suggest adding indexes to any field that you plan to filter or sort by
-# Add the `@index` or `@index(unique: true)` annotation after any non-key field
-# https://academy.subquery.network/build/graphql.html#indexing-by-non-primary-key-field
+# SO4 protocol schema
+#
+# Protocol-scale values, token amounts, prices, USD 1e30 values, shares, and
+# signed deltas are stored as strings unless they are native ledger/count values.
+# Mappings should keep these values as decoded decimal/base-unit strings and
+# must not downcast them to JavaScript numbers.
 
-type Account @entity {
-  """
-  id field is always required and must look like this
-  """
+"""
+Tracked SO4 protocol, token, faucet, market, and referral contracts.
+Fed by deployment manifests and first-seen contract events such as mkt_new,
+token transfer/mint/burn, faucet activity, and referral administration events.
+"""
+type ProtocolContract @entity {
   id: ID!
-  """
-  The first block on which we see a transfer involving this account
-  """
-  firstSeenLedger: Int
-  """
-  The most recent block on which we see a transfer involving this account
-  """
-  lastSeenLedger: Int
-  sentTransfers: [Transfer] @derivedFrom(field: "from") # These are virtual properties to help us navigate to the correct foreign key of Transfer
-  receivedTransfers: [Transfer] @derivedFrom(field: "to") # These are virtual properties to help us navigate to the correct foreign key of Transfer
-  sentPayments: [Payment] @derivedFrom(field: "from") # These are virtual properties to help us navigate to the correct foreign key of Payment
-  receivedPayments: [Payment] @derivedFrom(field: "to") # These are virtual properties to help us navigate to the correct foreign key of Payment
+  key: String! @index(unique: true)
+  address: String! @index(unique: true)
+  contractType: String! @index
+  name: String
+  network: String @index
+  firstSeenLedger: Int @index
+  firstSeenTimestamp: Date @index
+  transactionHash: String @index
+  markets: [Market] @derivedFrom(field: "contract")
 }
 
-type Transfer @entity {
-  """
-  id field is always required and must look like this
-  """
+"""
+Token metadata for collateral, index, market, faucet, and protocol tokens.
+Fed by token contract metadata plus token/faucet mint, burn, and transfer events.
+"""
+type Token @entity {
   id: ID!
-  """
-  The ledger of the transfer
-  """
-  ledger: Int!
-  """
-  The date of the transfer
-  """
-  date: Date!
-  """
-  The contract that was transferred
-  """
-  contract: String!
-  """
-  The account that transfers are made from
-  """
-  from: Account!
-  """
-  The account that transfers are made to
-  """
-  to: Account!
-  """
-  Value that is transferred
-  """
-  value: BigInt!
+  contract: ProtocolContract
+  address: String! @index(unique: true)
+  symbol: String @index
+  name: String
+  decimals: Int
+  tokenType: String @index
+  firstSeenLedger: Int @index
+  firstSeenTimestamp: Date @index
+  transactionHash: String @index
+  transfers: [MarketTokenTransfer] @derivedFrom(field: "token")
 }
 
-type Payment @entity {
+"""
+SO4 market definition.
+Fed by mkt_new and later market status/configuration events.
+"""
+type Market @entity {
   id: ID!
-  txHash: String!
-  """
-  The account that payments are made from
-  """
-  from: Account!
-  """
-  The account that payments are made to
-  """
-  to: Account!
-  """
-  Amount that is transferred
-  """
+  key: String! @index(unique: true)
+  contract: ProtocolContract
+  marketToken: Token
+  indexToken: Token
+  longToken: Token
+  shortToken: Token
+  name: String
+  status: String! @index
+  createdBy: String @index
+  createdLedger: Int! @index
+  createdTimestamp: Date! @index
+  createdTransactionHash: String! @index
+  latestConfigSnapshot: MarketConfigSnapshot
+  configSnapshots: [MarketConfigSnapshot] @derivedFrom(field: "market")
+  deposits: [Deposit] @derivedFrom(field: "market")
+  withdrawals: [Withdrawal] @derivedFrom(field: "market")
+  orders: [Order] @derivedFrom(field: "market")
+  positions: [Position] @derivedFrom(field: "market")
+}
+
+"""
+Point-in-time market configuration.
+Fed by mkt_new and market configuration update events.
+"""
+type MarketConfigSnapshot @entity {
+  id: ID!
+  market: Market! @index
+  key: String! @index
+  version: Int @index
+  oracle: String
+  maxLeverage: String
+  minCollateralUsd: String
+  borrowingFactor: String
+  fundingFactor: String
+  depositFeeFactor: String
+  withdrawalFeeFactor: String
+  liquidationFeeUsd: String
+  rawConfig: String
+  ledger: Int! @index
+  timestamp: Date! @index
+  transactionHash: String! @index
+}
+
+"""
+Liquidity deposit lifecycle.
+Fed by dep_create, dep_execute, and dep_cancel events.
+"""
+type Deposit @entity {
+  id: ID!
+  key: String! @index(unique: true)
+  market: Market! @index
+  account: String! @index
+  receiver: String @index
+  status: String! @index
+  longTokenAmount: String
+  shortTokenAmount: String
+  minMarketTokens: String
+  marketTokenAmount: String
+  executionFee: String
+  createdLedger: Int @index
+  createdTimestamp: Date @index
+  createdTransactionHash: String @index
+  executedLedger: Int @index
+  executedTimestamp: Date @index
+  executedTransactionHash: String @index
+  cancelledLedger: Int @index
+  cancelledTimestamp: Date @index
+  cancelledTransactionHash: String @index
+  cancellationReason: String
+}
+
+"""
+Liquidity withdrawal lifecycle.
+Fed by wth_create, wth_execute, and wth_cancel events.
+"""
+type Withdrawal @entity {
+  id: ID!
+  key: String! @index(unique: true)
+  market: Market! @index
+  account: String! @index
+  receiver: String @index
+  status: String! @index
+  marketTokenAmount: String
+  minLongTokenAmount: String
+  minShortTokenAmount: String
+  longTokenAmount: String
+  shortTokenAmount: String
+  executionFee: String
+  createdLedger: Int @index
+  createdTimestamp: Date @index
+  createdTransactionHash: String @index
+  executedLedger: Int @index
+  executedTimestamp: Date @index
+  executedTransactionHash: String @index
+  cancelledLedger: Int @index
+  cancelledTimestamp: Date @index
+  cancelledTransactionHash: String @index
+  cancellationReason: String
+}
+
+"""
+Pool balance snapshot for market-side liquidity and accounting.
+Fed by dep_execute, wth_execute, fee settlement, funding, liquidation, and ADL events.
+"""
+type PoolBalanceSnapshot @entity {
+  id: ID!
+  market: Market! @index
+  token: Token @index
+  side: String! @index
+  poolAmount: String!
+  reservedAmount: String
+  openInterest: String
+  pnlPoolUsd: String
+  feePoolAmount: String
+  ledger: Int! @index
+  timestamp: Date! @index
+  transactionHash: String! @index
+}
+
+"""
+Market and protocol-token transfer observability.
+Fed by token/faucet transfer, mint, burn, and market-token transfer events.
+"""
+type MarketTokenTransfer @entity {
+  id: ID!
+  token: Token @index
+  contractAddress: String! @index
+  from: String @index
+  to: String @index
+  account: String @index
+  transferType: String! @index
   amount: String!
-}
-
-type Credit @entity {
-  id: ID!
-  account: Account!
-  amount: String!
-}
-
-type Debit @entity {
-  id: ID!
-  account: Account!
-  amount: String!
+  ledger: Int! @index
+  timestamp: Date! @index
+  transactionHash: String @index
 }

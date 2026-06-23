@@ -20,6 +20,8 @@ The same commands are available inside the workspace package:
 ```bash
 bun run --cwd apps/s03-indexer codegen
 bun run --cwd apps/s03-indexer build
+bun run --cwd apps/s03-indexer sync:contracts:testnet
+bun run --cwd apps/s03-indexer sync:contracts:local
 bun run --cwd apps/s03-indexer dev
 bun run --cwd apps/s03-indexer start
 ```
@@ -62,6 +64,7 @@ The default configuration targets public SDF testnet:
 ENDPOINT=https://horizon-testnet.stellar.org
 CHAIN_ID=Test SDF Network ; September 2015
 SOROBAN_ENDPOINT=https://soroban-testnet.stellar.org
+INDEXER_NETWORK=testnet
 ```
 
 Use these defaults when indexing public testnet data or when contributors need
@@ -74,6 +77,7 @@ variables to the local values shown in `.env.example`:
 ENDPOINT=http://host.docker.internal:8000
 CHAIN_ID=Standalone Network ; February 2017
 SOROBAN_ENDPOINT=http://host.docker.internal:8000/soroban/rpc
+INDEXER_NETWORK=local
 ```
 
 Use local endpoints when you are testing against a local Stellar network,
@@ -85,6 +89,43 @@ Endpoint and chain settings are read while SubQuery generates/builds
 `project.yaml`; after changing `.env`, run `bun run indexer:codegen` and
 `bun run indexer:build` before `bun run indexer:start`. `bun run indexer:dev`
 does all three steps for you.
+
+## Contract Manifests
+
+The indexer reads SO4 contract IDs from generated JSON files in `config/`.
+Refresh them after deploying or bootstrapping contracts:
+
+```bash
+bun run --cwd apps/s03-indexer sync:contracts:testnet
+bun run --cwd apps/s03-indexer sync:contracts:local
+```
+
+The sync script reads the contracts repo deployment outputs:
+
+- `.deployed/<network>.env`
+- `.deployed/tokens-<network>.env`
+- `.deployed/frontend-<network>.env`
+- `.deployed/frontend-<network>.ts`
+- `.stellar/contract-ids/<network>.json`
+
+By default it looks for the sibling contracts repo used by the SO4 workspace
+layout. Override that path when needed:
+
+```bash
+SO4_CONTRACTS_REPO=/path/to/contracts bun run --cwd apps/s03-indexer sync:contracts:testnet
+```
+
+`contracts.testnet.json` and `contracts.local.json` are separate files, so local
+and testnet manifests can coexist without overwriting each other. `project.ts`
+uses `INDEXER_NETWORK` to select `config/contracts.<network>.json`, or
+`INDEXER_CONTRACTS_CONFIG` when you need to point at a specific manifest.
+
+The generated config includes the network name, network passphrase, Horizon
+endpoint, Soroban RPC endpoint, core protocol contracts, test token contracts,
+faucet contract, and complete market token/index/long/short triplets. The sync
+fails fast on malformed contract IDs and required missing values. Missing
+`MARKET_TOKEN_*` values are reported as warnings because they are expected before
+market bootstrap.
 
 ## Generated Artifacts
 
