@@ -8,7 +8,11 @@
     "lint": "turbo lint",
     "format": "turbo format",
     "typecheck": "turbo typecheck",
-    "contracts:gen:all": "bun run scripts/generate-bindings.ts"
+    "contracts:gen:all": "bun run scripts/generate-bindings.ts",
+    "indexer:codegen": "bun run --cwd apps/s03-indexer codegen",
+    "indexer:build": "bun run --cwd apps/s03-indexer build",
+    "indexer:dev": "bun run --cwd apps/s03-indexer dev",
+    "indexer:start": "bun run --cwd apps/s03-indexer start"
   },
   "devDependencies": {
     "prettier": "^3.8.1",

@@ -1,4 +1,5 @@
 import { toast } from "sonner"
+import { GLV_VAULTS, GM_POOLS } from "../data/pools"
 import { submitTx } from "@/shared/hooks/useTxSubmit"
 import { NETWORK } from "@/app/config/network"
 import { queryClient } from "@/app/providers/QueryProvider"
@@ -20,31 +21,13 @@ import {
   createDeposit as createGlvDeposit,
   createWithdrawal as createGlvWithdrawal,
 } from "@/lib/glv-router-client"
-import { GLV_VAULTS, GM_POOLS } from "../data/pools"
 
 const SO4_DECIMALS = 7
 const GM_TOKEN_DECIMALS = 7
 const GLV_TOKEN_DECIMALS = 7
 
-function fakeTxDelay(ms = 1500): Promise<void> {
-  return new Promise((res) => setTimeout(res, ms))
-}
-
 function isValidAccount(account: string): boolean {
   return /^G[A-Z2-7]{55}$/.test(account)
-}
-
-function runMockWrite(loadingMessage: string, successMessage: string, delay = 1500): Promise<string> {
-  return submitTx(async () => "", {
-    loadingMessage,
-    successMessage,
-    successDescription: () => "Tx: DUMMY_TX_HASH",
-    execute: async () => {
-      await fakeTxDelay(delay)
-      return "DUMMY_TX_HASH"
-    },
-    onError: (error) => (error instanceof Error ? error.message : "Transaction failed"),
-  })
 }
 
 async function invalidateStakingQueries(account: string): Promise<void> {
