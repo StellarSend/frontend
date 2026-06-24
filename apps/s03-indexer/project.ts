@@ -90,8 +90,10 @@ const project: StellarProject = {
   dataSources: [
     {
       kind: StellarDatasourceKind.Runtime,
-      /* Set this as a logical start block, it might be block 1 (genesis) or when your contract was deployed */
-      startBlock: 228206,
+      /* Set this as a logical start block, it might be block 1 (genesis) or when your
+         contract was deployed. Override with INDEXER_START_LEDGER for local runs, where
+         a fresh standalone network must backfill from an early ledger. */
+      startBlock: Number(process.env.INDEXER_START_LEDGER ?? 228206),
       mapping: {
         file: "./dist/index.js",
         handlers: indexedContractIds.map((contractId) => ({

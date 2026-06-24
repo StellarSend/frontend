@@ -8,6 +8,8 @@
     "codegen": "subql codegen",
     "sync:contracts:testnet": "bun run scripts/sync-contracts.ts --network testnet",
     "sync:contracts:local": "bun run scripts/sync-contracts.ts --network local",
+    "smoke:local": "bun run scripts/local-smoke.ts",
+    "smoke:clean": "bun run scripts/clean-local.ts",
     "start": "docker compose pull && docker compose up --remove-orphans",
     "start:docker": "bun run start",
     "dev": "bun run codegen && bun run build && bun run start",

@@ -127,6 +127,89 @@ fails fast on malformed contract IDs and required missing values. Missing
 `MARKET_TOKEN_*` values are reported as warnings because they are expected before
 market bootstrap.
 
+## Local Smoke Flow
+
+`smoke:local` is the one documented command that proves the whole stack works
+together: it drives real protocol actions through the deployed contracts and then
+asserts the indexer turned those on-chain events into GraphQL entities.
+
+```bash
+bun run --cwd apps/s03-indexer build      # verify the indexer compiles
+bun run --cwd apps/s03-indexer smoke:local
+```
+
+### What it does
+
+The runner executes layered, timed steps and records each one in a JSON report:
+
+1. **preflight** — checks `stellar` (and `make`/`docker` for fresh deploys) are on
+   PATH, locates the contracts repo, and ensures local-only signing keys exist
+   (generating and friendbot-funding them when needed). It never uses keys outside
+   the local/test keystore.
+2. **services** — confirms the Soroban RPC, Horizon, and SubQuery GraphQL endpoints
+   are reachable before any transaction is sent.
+3. **contracts-deploy** — validates a pre-existing local deployment discovered from
+   `.deployed/local.env`, or, on a fresh network, deploys test tokens + faucet,
+   deploys the protocol contracts, and bootstraps a market via the contract repo
+   `make` targets.
+4. **frontend-config** — runs `sync:contracts:local` so the indexer manifest matches
+   the freshly deployed contract IDs.
+5. **indexer-runtime** — rebuilds the indexer for the local config and starts the
+   Docker stack (skippable when it is already running).
+6. **contract-action** — submits fixed oracle prices, claims faucet tokens, then
+   creates and executes a deposit, a `MarketIncrease` that opens a long position, a
+   `MarketDecrease` that closes it, and (optionally) registers and sets a referral
+   code.
+7. **graphql-query** — waits for the indexer to catch up to the latest ledger and
+   asserts the expected `market`, `deposit`, `order`, `position`, and `transfer`
+   entity counts.
+
+### Run modes
+
+| Mode | Behavior |
+| --- | --- |
+| `--mode auto` (default) | Reuse a complete local deployment if present, otherwise deploy + bootstrap. |
+| `--mode fresh` | Always deploy test tokens, contracts, and bootstrap a market. |
+| `--mode existing` | Require a complete `.deployed/local.env`; fail fast if missing. |
+
+### Common options
+
+All options also have `SMOKE_*` environment-variable equivalents.
+
+```bash
+bun run --cwd apps/s03-indexer smoke:local \
+  --contracts-repo /path/to/contracts \   # SO4_CONTRACTS_REPO
+  --source so4-local --keeper so4-local \  # local stellar CLI keys
+  --long-code TWBTC --short-code TUSDC \
+  --soroban-endpoint http://localhost:8000/soroban/rpc \
+  --graphql-endpoint http://localhost:3000 \
+  --report .smoke/report.json
+```
+
+Useful flags: `--skip-referral` (skip the optional referral step),
+`--skip-indexer-restart` (assume the stack is already running with fresh config),
+and `--skip-indexer-check` (contracts-only run, no GraphQL assertions).
+
+### The report
+
+A JSON report is written to `.smoke/report.json` (override with `--report`). It
+contains the run mode, service reachability, deployment artifacts (market token,
+core contract IDs, faucet), each action's ledger/transaction-hash/key data, the
+GraphQL entity counts with pass/fail assertions, and — when something breaks — a
+top-level `failure` block naming the broken layer (`contracts-deploy`,
+`contract-action`, `indexer-runtime`, `graphql-query`, or `frontend-config`) so
+you know exactly where to look.
+
+### Rerunning cleanly
+
+The indexer persists entities in Postgres, so rerun against a clean database:
+
+```bash
+bun run --cwd apps/s03-indexer smoke:clean        # stop stack + drop DB + clear reports
+bun run --cwd apps/s03-indexer smoke:clean --keep-db
+bun run --cwd apps/s03-indexer smoke:clean --reports   # only clear .smoke reports
+```
+
 ## Generated Artifacts
 
 `project.ts`, `schema.graphql`, and the TypeScript mapping sources are the
