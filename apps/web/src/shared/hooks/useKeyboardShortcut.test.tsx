@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useKeyboardShortcut } from "./useKeyboardShortcut"
@@ -229,7 +229,7 @@ describe("useKeyboardShortcut", () => {
     await user.click(component)
 
     // Track if preventDefault is called by checking behavior
-    const events: KeyboardEvent[] = []
+    const events: Array<KeyboardEvent> = []
     const originalAddEventListener = document.addEventListener
     vi.spyOn(document, "addEventListener").mockImplementation(
       (eventName, handler) => {

@@ -1,8 +1,8 @@
+import { afterEach, describe, expect, it } from 'vitest';
 
-import React from 'react';
-import { describe, it, expect, afterEach } from 'bun:test';
-import { render, screen, cleanup } from '@testing-library/react';
-import { GmPoolsTable, Pool } from './gm-pools-table';
+import { cleanup, render, screen } from '@testing-library/react';
+import { GmPoolsTable } from './gm-pools-table';
+import type { Pool } from './gm-pools-table';
 
 // Ensure cleanup after each test
 afterEach(() => {
@@ -21,7 +21,7 @@ describe('GmPoolsTable', () => {
   });
 
   it('renders fixture row and visible columns', () => {
-    const fixture: Pool[] = [
+    const fixture: Array<Pool> = [
       { id: '1', name: 'USDC/XLM', tvl: '$1,000,000', apr: '12%' },
     ];
     render(<GmPoolsTable pools={fixture} />);

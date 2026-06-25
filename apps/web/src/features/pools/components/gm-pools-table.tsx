@@ -1,4 +1,5 @@
-import React from 'react';
+
+import type { PoolMarketConfig } from '../data/markets';
 
 export interface Pool {
   id: string;
@@ -9,15 +10,22 @@ export interface Pool {
 
 export interface GmPoolsTableProps {
   isLoading?: boolean;
-  pools?: Pool[];
+  pools?: Array<Pool>;
+  markets?: Array<PoolMarketConfig>;
 }
 
-export function GmPoolsTable({ isLoading, pools = [] }: GmPoolsTableProps) {
+export function GmPoolsTable({ isLoading, pools, markets }: GmPoolsTableProps) {
+  const data = pools || (markets ? markets.map(m => ({
+    id: m.marketToken,
+    name: m.displayName,
+    tvl: '...',
+    apr: '...'
+  })) : []);
   if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading pools...</div>;
   }
 
-  if (pools.length === 0) {
+  if (data.length === 0) {
     return <div className="p-8 text-center text-muted-foreground">No pools found.</div>;
   }
 
@@ -32,7 +40,7 @@ export function GmPoolsTable({ isLoading, pools = [] }: GmPoolsTableProps) {
           </tr>
         </thead>
         <tbody>
-          {pools.map((pool) => (
+          {data.map((pool) => (
             <tr key={pool.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
               <td className="px-6 py-4">{pool.name}</td>
               <td className="px-6 py-4">{pool.tvl}</td>
