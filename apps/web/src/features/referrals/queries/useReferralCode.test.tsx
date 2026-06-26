@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { useReferralCode } from "./useReferralCode"
 import { useWalletStore } from "@/features/wallet/store/wallet-store"
-import type React from "react"
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -38,10 +38,6 @@ function createWrapper() {
 }
 
 function TestComponent() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { useReferralCode } = require("./useReferralCode") as {
-    useReferralCode: () => { data: string | null | undefined; isLoading: boolean; isError: boolean }
-  }
   const { data, isLoading, isError } = useReferralCode()
 
   if (isLoading) return <div data-testid="loading">Loading…</div>
