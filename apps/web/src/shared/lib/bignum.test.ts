@@ -51,4 +51,37 @@ describe("Soroban amount conversions", () => {
     expect(toSorobanAmount("-1.5", 7)).toBe(-15000000n)
     expect(formatSorobanAmount(-15000000n, 7)).toBe("-1.5")
   })
+
+  it("handles zero correctly", () => {
+    expect(toSorobanAmount("0", 7)).toBe(0n)
+    expect(toSorobanAmount("0.0", 7)).toBe(0n)
+    expect(fromSorobanAmount(0n, 7)).toBe(0)
+    expect(formatSorobanAmount(0n, 7)).toBe("0")
+  })
+
+  it("handles tiny decimals at the limit of precision", () => {
+    expect(toSorobanAmount("0.0000001", 7)).toBe(1n)
+    expect(toSorobanAmount("0.000001", 6)).toBe(1n)
+    expect(formatSorobanAmount(1n, 7)).toBe("0.0000001")
+    expect(formatSorobanAmount(1n, 6)).toBe("0.000001")
+  })
+
+  it("handles very large values without overflow", () => {
+    const largeRaw = toSorobanAmount("999999999999.9999999", 7)
+    expect(largeRaw).toBe(9999999999999999999n)
+    expect(formatSorobanAmount(largeRaw, 7)).toBe("999999999999.9999999")
+  })
+
+  it("rejects invalid string inputs", () => {
+    expect(() => toSorobanAmount("abc", 7)).toThrow()
+    expect(() => toSorobanAmount("", 7)).toThrow()
+    expect(() => toSorobanAmount("1.2.3", 7)).toThrow()
+    expect(() => toSorobanAmount("1,000", 7)).toThrow()
+  })
+
+  it("rejects non-finite number inputs", () => {
+    expect(() => toSorobanAmount(Infinity, 7)).toThrow()
+    expect(() => toSorobanAmount(-Infinity, 7)).toThrow()
+    expect(() => toSorobanAmount(NaN, 7)).toThrow()
+  })
 })

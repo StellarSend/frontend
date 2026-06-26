@@ -2,7 +2,7 @@ export const fakeWalletAddress = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 export const fakeSignedXdr = "AAAAAgAAAAAFakeSignedTransactionEnvelope"
 
 export const fakeSigner = {
-  async signTransaction() {
+  signTransaction() {
     return { signedTxXdr: fakeSignedXdr }
   },
 }

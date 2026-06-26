@@ -41,14 +41,14 @@ async function fetchTokensFromChain(): Promise<Array<Token>> {
     // 2. Fetch metadata (symbol, decimals, name) for each token — one sim per call
     //    because simulateTransaction only returns a single result (the last op).
     async function simCall(tokenContract: Contract, method: string) {
-      const tx = new TransactionBuilder(dummyAccount, {
+      const simTx = new TransactionBuilder(dummyAccount, {
         fee: "100",
         networkPassphrase: NETWORK.networkPassphrase,
       })
         .addOperation(tokenContract.call(method))
         .setTimeout(10)
         .build()
-      const sim = await sorobanRpc.simulateTransaction(tx)
+      const sim = await sorobanRpc.simulateTransaction(simTx)
       if (!rpc.Api.isSimulationSuccess(sim) || !sim.result) {
         throw new Error(`${method} simulation failed`)
       }

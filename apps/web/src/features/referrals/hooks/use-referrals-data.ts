@@ -119,7 +119,7 @@ export function useAffiliateReferrals() {
     queryKey: ["referrals", "affiliate-referrals", address],
     // Per-referral volume and commission data require an off-chain event indexer.
     // There is no on-chain bulk query for this. Return empty until an indexer exists.
-    queryFn: async (): Promise<Array<AffiliateReferral>> => [],
+    queryFn: (): Array<AffiliateReferral> => [],
     enabled: !!address,
     staleTime: 60_000,
   })
@@ -132,7 +132,7 @@ export function useDistributions() {
     queryKey: ["referrals", "distributions", address],
     // Distribution history requires querying Stellar event logs for DistributionClaimed
     // events — no on-chain bulk read exists. Return empty until an indexer is wired.
-    queryFn: async (): Promise<Array<DistributionEntry>> => [],
+    queryFn: (): Array<DistributionEntry> => [],
     enabled: !!address,
     staleTime: 60_000,
   })

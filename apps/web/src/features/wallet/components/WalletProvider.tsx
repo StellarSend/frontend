@@ -30,7 +30,7 @@ export function WalletProvider({
   walletKit: WalletKit
   children: ReactNode
 }) {
-  const { address, walletId, status, setConnected, setDisconnected, setStatus } = useWalletStore()
+  const { address, walletId: storeWalletId, status, setConnected, setDisconnected, setStatus } = useWalletStore()
 
   const connect = async (walletId: string) => {
     setStatus("connecting")
@@ -59,8 +59,8 @@ export function WalletProvider({
   const signTransaction = async (xdr: string) => walletKit.signTransaction(xdr)
 
   const contextValue = useMemo(
-    () => ({ walletKit, address, walletId, status, connect, disconnect, signTransaction }),
-    [walletKit, address, walletId, status],
+    () => ({ walletKit, address, walletId: storeWalletId, status, connect, disconnect, signTransaction }),
+    [walletKit, address, storeWalletId, status],
   )
 
   return <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>
