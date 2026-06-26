@@ -4,6 +4,12 @@ This Bun workspace package contains the SubQuery Stellar indexer scaffold for
 the S03 app. It indexes Stellar testnet payments, account credit/debit effects,
 and Soroban `transfer` events.
 
+> **New contributor?** Start with the top-level
+> [Local Full-Stack Integration Guide](../../docs/local-full-stack.md). It
+> covers prerequisites, the deploy → sync → index → query → UI path end-to-end,
+> troubleshooting, and the definition of done. Use the rest of this README as
+> the indexer-specific reference.
+
 ## Workspace Commands
 
 Run these commands from the repository root:

@@ -139,6 +139,14 @@ cd so4-monorepo
 bun install
 ```
 
+### Full local stack (contracts + indexer + web)
+
+If you need the indexer and contracts running against the web app, follow the
+[Local Full-Stack Integration Guide](./docs/local-full-stack.md). It documents
+prerequisites, deploy/bootstrap, manifest sync, indexer start, smoke flow,
+GraphQL verification, UI verification, troubleshooting, and the definition of
+done. Run `bun run check:integration` before pushing to mirror the CI matrix.
+
 ### Running the development server
 
 ```bash

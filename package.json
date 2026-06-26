@@ -13,7 +13,8 @@
     "indexer:codegen": "bun run --cwd apps/s03-indexer codegen",
     "indexer:build": "bun run --cwd apps/s03-indexer build",
     "indexer:dev": "bun run --cwd apps/s03-indexer dev",
-    "indexer:start": "bun run --cwd apps/s03-indexer start"
+    "indexer:start": "bun run --cwd apps/s03-indexer start",
+    "check:integration": "bash scripts/check-integration.sh"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

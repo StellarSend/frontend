@@ -41,7 +41,7 @@ export default mergeConfig(
       ),
     },
     test: {
-      include: ["src/**/*.{test,spec}.{ts,tsx}"],
+      include: ["src/**/*.{test,spec}.{ts,tsx}", "test/**/*.{test,spec}.{ts,tsx}"],
       deps: {
         inline: [
           "react",
