@@ -181,6 +181,36 @@ Run any of these from the **repository root**:
 | `bun format` | Format all files with Prettier |
 | `bun typecheck` | Run TypeScript type checks across all packages |
 
+## Testing Guide
+
+From a clean checkout, install workspace dependencies once:
+
+```bash
+bun install
+```
+
+Run the focused test suites from the repository root:
+
+```bash
+bun run --cwd packages/contracts test
+bun run --cwd apps/web test
+bun run test:e2e
+```
+
+The end-to-end suite uses Playwright. On a fresh machine, Playwright may need
+browser binaries or OS-level system dependencies before `bun run test:e2e` can
+launch browsers. If Playwright reports missing dependencies, install them with
+the Playwright CLI through Bun:
+
+```bash
+bunx playwright install --with-deps
+```
+
+Web tests run with MSW enabled and `onUnhandledRequest: "error"`, so every
+network request made by a test must have an explicit mock handler. Add shared
+handlers in `apps/web/test/msw/handlers.ts` or test-specific handlers with
+`server.use(...)`. Tests must not depend on real external network calls.
+
 ---
 
 ## Architecture
@@ -307,5 +337,4 @@ SOFTWARE.
   Built by <a href="https://so4.market">so4 labs</a> ·
   <a href="https://twitter.com/so4market">@so4market</a>
 </p>
-
 
