@@ -435,6 +435,95 @@ describe("SO4 event dispatch", () => {
     expect(records("TraderReferral")[0].referralCodeId).toBe("referral:STEINS");
   });
 
+  test("indexes funding fee claim event", async () => {
+    await dispatchEvent(
+      so4Event("fnd_clm", {
+        key: "fnd-1",
+        market: marketToken,
+        account,
+        receiver: account,
+        token: marketToken,
+        amount: "100",
+        amount_usd: "200000000",
+      }),
+    );
+
+    const [claim] = records("FundingFeeClaim");
+    expect(claim).toBeDefined();
+    expect(claim.id).toBe("funding-claim:fnd-1");
+    expect(claim.amount).toBe("100");
+    expect(claim.amountUsd).toBe("200000000");
+    expect(claim.status).toBe("CLAIMED");
+  });
+
+  test("indexes UI fee accrual event", async () => {
+    await dispatchEvent(
+      so4Event("ui_fee_acc", {
+        key: "ord-1",
+        market: marketToken,
+        account,
+        receiver: account,
+        token: marketToken,
+        amount: "50",
+        amount_usd: "100000000",
+      }),
+    );
+
+    const [accrual] = records("UiFeeAccrual");
+    expect(accrual).toBeDefined();
+    expect(accrual.id).toBe("ui-fee:ord-1:ui_fee_acc");
+    expect(accrual.amount).toBe("50");
+    expect(accrual.amountUsd).toBe("100000000");
+  });
+
+  test("indexes UI fee claim event", async () => {
+    await dispatchEvent(
+      so4Event("ui_fee_clm", {
+        key: "ord-2",
+        market: marketToken,
+        account,
+        receiver: account,
+        token: marketToken,
+        amount: "75",
+      }),
+    );
+
+    const [claim] = records("UiFeeAccrual");
+    expect(claim).toBeDefined();
+    expect(claim.id).toBe("ui-fee:ord-2:ui_fee_clm");
+    expect(claim.amount).toBe("75");
+  });
+
+  test("indexes referral ownership transfer event", async () => {
+    const newOwner = Keypair.random().publicKey();
+    await dispatchEvent(so4Event("ref_reg", { code: "TRANSFER_ME", account }));
+    await dispatchEvent(
+      so4Event("ref_xfr", {
+        code: "TRANSFER_ME",
+        previous_owner: account,
+        new_owner: newOwner,
+        account,
+      }),
+    );
+
+    const [code] = records("ReferralCode");
+    expect(code.owner).toBe(newOwner);
+
+    const transfers = records("ReferralOwnershipTransfer");
+    expect(transfers).toHaveLength(1);
+    expect(transfers[0].code).toBe("TRANSFER_ME");
+    expect(transfers[0].previousOwner).toBe(account);
+    expect(transfers[0].newOwner).toBe(newOwner);
+  });
+
+  test("indexes fee claim with deterministic id", async () => {
+    await dispatchEvent(so4Event("fee_clm", { key: "fee-det", account, amount: "99" }));
+
+    const [claim] = records("FeeClaim");
+    expect(claim.id).toBe("fee-claim:fee-det");
+    expect(claim.amount).toBe("99");
+  });
+
   test("indexes token/faucet transfer-style events", async () => {
     await dispatchEvent(
       so4Event("transfer", {
@@ -448,6 +537,128 @@ describe("SO4 event dispatch", () => {
     expect(transfer.id).toBe("token-event:event-transfer");
     expect(transfer.transferType).toBe("transfer");
     expect(transfer.amount).toBe("1000");
+  });
+
+  test("indexes token mint event with zero-address from", async () => {
+    await dispatchEvent(
+      so4Event("mint", {
+        to: receiver,
+        amount: "5000",
+      }, marketToken),
+    );
+
+    const transfers = records("MarketTokenTransfer");
+    const mintTransfer = transfers.find(
+      (t) => t.transferType === "mint",
+    );
+    expect(mintTransfer).toBeDefined();
+    expect(mintTransfer.from).toBe("00000000000000000000000000000000000000000000000000000000");
+    expect(mintTransfer.to).toBe(receiver);
+    expect(mintTransfer.amount).toBe("5000");
+  });
+
+  test("indexes token burn event", async () => {
+    await dispatchEvent(
+      so4Event("burn", {
+        from: account,
+        to: receiver,
+        amount: "250",
+      }, marketToken),
+    );
+
+    const transfers = records("MarketTokenTransfer");
+    const burnTransfer = transfers.find(
+      (t) => t.transferType === "burn",
+    );
+    expect(burnTransfer).toBeDefined();
+    expect(burnTransfer.from).toBe(account);
+    expect(burnTransfer.amount).toBe("250");
+  });
+
+  test("indexes token approve event", async () => {
+    await dispatchEvent(
+      so4Event("approve", {
+        from: account,
+        to: receiver,
+        amount: "10000",
+      }, marketToken),
+    );
+
+    const transfers = records("MarketTokenTransfer");
+    const approveTransfer = transfers.find(
+      (t) => t.transferType === "approve",
+    );
+    expect(approveTransfer).toBeDefined();
+    expect(approveTransfer.from).toBe(account);
+    expect(approveTransfer.to).toBe(receiver);
+    expect(approveTransfer.amount).toBe("10000");
+  });
+
+  test("indexes token claim event", async () => {
+    await dispatchEvent(
+      so4Event("claim", {
+        from: account,
+        to: receiver,
+        amount: "777",
+      }, marketToken),
+    );
+
+    const transfers = records("MarketTokenTransfer");
+    const claimTransfer = transfers.find(
+      (t) => t.transferType === "claim",
+    );
+    expect(claimTransfer).toBeDefined();
+    expect(claimTransfer.from).toBe(account);
+    expect(claimTransfer.amount).toBe("777");
+  });
+
+  test("indexes faucet claim event", async () => {
+    await dispatchEvent(
+      so4Event("faucet_claim", {
+        from: account,
+        to: receiver,
+        amount: "3000",
+      }, marketToken),
+    );
+
+    const transfers = records("MarketTokenTransfer");
+    const faucetTransfer = transfers.find(
+      (t) => t.transferType === "faucet_claim",
+    );
+    expect(faucetTransfer).toBeDefined();
+    expect(faucetTransfer.from).toBe(account);
+    expect(faucetTransfer.to).toBe(receiver);
+    expect(faucetTransfer.amount).toBe("3000");
+  });
+
+  test("ensures Token entity is created for token events", async () => {
+    await dispatchEvent(
+      so4Event("transfer", {
+        from: account,
+        to: receiver,
+        amount: "100",
+      }, marketToken),
+    );
+
+    const tokens = records("Token");
+    const token = tokens.find((t) => t.address === marketToken);
+    expect(token).toBeDefined();
+    expect(token.id).toBe(marketToken);
+    expect(token.tokenType).toBe("market");
+  });
+
+  test("created MarketTokenTransfer references correct contract address", async () => {
+    await dispatchEvent(
+      so4Event("transfer", {
+        from: account,
+        to: receiver,
+        amount: "500",
+      }, marketToken),
+    );
+
+    const [transfer] = records("MarketTokenTransfer");
+    expect(transfer.contractAddress).toBe(marketToken);
+    expect(transfer.tokenId).toBe(marketToken);
   });
 
   test("logs and skips unknown events", async () => {

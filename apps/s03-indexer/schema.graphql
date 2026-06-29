@@ -4,6 +4,14 @@
 # signed deltas are stored as strings unless they are native ledger/count values.
 # Mappings should keep these values as decoded decimal/base-unit strings and
 # must not downcast them to JavaScript numbers.
+#
+# COMMON SCHEMA MISTAKES (will cause codegen failures or broken queries):
+# - Adding a `@entity` type without at least one non-ID, non-derived field.
+# - Using reserved words (`type`, `query`, `mutation`, `interface`) as entity names.
+# - Referencing a type that does not exist or is not marked `@entity`.
+# - Omitting `!` on a required field — nullable fields are the default.
+# - Using `@derivedFrom` on a field that is not a relation to another `@entity`.
+# - Changing an existing field type after initial deployment (must add new field instead).
 
 """
 Tracked SO4 protocol, token, faucet, market, and referral contracts.
