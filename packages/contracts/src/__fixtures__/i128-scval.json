@@ -1,9 +1,0 @@
-{
-  "description": "ScVal encoding of i128 value 5000000000 (50 XLM at 8 decimals), captured from scval.ts i128ToScVal",
-  "input": "5000000000",
-  "expected": {
-    "type": "scvI128",
-    "lo": "5000000000",
-    "hi": "0"
-  }
-}

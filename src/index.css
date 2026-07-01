@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base styles ─────────────────────────────────────────────────── */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #060b1a;
+    color: #f1f5f9;
+    line-height: 1.6;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0a1128;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #1e2e5c;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2d6aff;
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgba(45, 106, 255, 0.3);
+    color: #fff;
+  }
+
+  /* Number inputs — remove spinners */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
+  /* Focus outlines only for keyboard nav */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+/* ── Component utilities ──────────────────────────────────────────── */
+
+@layer components {
+  .bg-stellar-gradient {
+    background: linear-gradient(90deg, #2d6aff 0%, #5491ff 50%, #1a4fff 100%);
+  }
+
+  .bg-success-gradient {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  }
+
+  .text-gradient {
+    background: linear-gradient(90deg, #2d6aff, #5491ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glass card */
+  .glass-card {
+    background: rgba(14, 26, 58, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(45, 106, 255, 0.15);
+  }
+}
+
+/* ── Utility overrides ───────────────────────────────────────────── */
+
+@layer utilities {
+  /* Height shorthand used by Button xl */
+  .h-13 {
+    height: 3.25rem;
+  }
+
+  /* Bg opacity that Tailwind 3 doesn't expose as a full class in jit */
+  .bg-stellar-500\/8 {
+    background-color: rgb(45 106 255 / 0.08);
+  }
+
+  .bg-warning-500\/8 {
+    background-color: rgb(245 158 11 / 0.08);
+  }
+}

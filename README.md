@@ -1,340 +1,258 @@
-# SO4 Market
+# StellarSend — Global Money Transfers on Stellar
 
-**On-chain perpetual markets, settled on Stellar.**
-
-SO4 is a unified-liquidity perpetuals DEX built on Stellar/Soroban. Deep order books, sub-second matching, and self-custodied risk — built for traders who care where their fills come from.
-
----
-
-## Screenshots
-
-| Landing | Trade |
-|---|---|
-| ![Landing page](./screenshots/landing.png) | ![Trade page](./screenshots/trade.png) |
-
-| Earn | Referrals |
-|---|---|
-| ![Earn page](./screenshots/earn.png) | ![Referrals page](./screenshots/referrals.png) |
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Screenshots](#screenshots)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Available Scripts](#available-scripts)
-- [Architecture](#architecture)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
-## Overview
-
-SO4 Market is the front-end interface for the SO4 perpetuals protocol. It connects to Stellar Soroban smart contracts (ExchangeRouter, DataStore, SyntheticsReader, OrderVault) and streams live prices from Binance (primary) with GMX oracle as automatic fallback.
-
-> **Status:** Active development. On-chain contract integration is in progress — the current build uses mock transactions with real UI and live price feeds.
+StellarSend is a production-quality, non-custodial web application for sending money globally using the [Stellar blockchain](https://stellar.org). It connects to the Freighter browser wallet, fetches live exchange quotes (via a backend or Stellar Horizon directly), builds and signs transactions client-side, and submits them to the network.
 
 ---
 
 ## Features
 
-| Area | Details |
-|---|---|
-| **Trade** | Long / Short / Swap with Market, Limit, and Trigger order types |
-| **Chart** | Candlestick chart (lightweight-charts v5), live price updates, position entry & liquidation price lines, dark/light theme |
-| **Positions** | Real-time positions, orders, trades, and claims tabs |
-| **Earn** | Portfolio overview, pool discovery, additional opportunities, reward distributions |
-| **Referrals** | Trader discount codes, affiliate tiers, commission distributions |
-| **Landing** | Live market ticker, order book preview, protocol stats |
-| **Theme** | Full dark / light mode with zero flash on load |
+- **Instant global payments** — 3–5 second settlement on Stellar
+- **Non-custodial** — private keys never leave the user's Freighter wallet
+- **Multi-asset support** — XLM, USDC, and any Stellar-based token
+- **Path payments** — automatic DEX routing for cross-asset transfers
+- **Live exchange quotes** — with slippage tolerance and price-impact display
+- **Real-time balance display** — XLM + USDC pulled from Horizon
+- **Transaction history** — paginated with expand-to-detail rows and Stellar Expert links
+- **Activity charts** — 7-day and 30-day volume charts (recharts)
+- **Testnet / Mainnet toggle** — switch with one click in Settings
+- **Dark-navy UI** — professional indigo/Stellar-blue design, fully responsive
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
+| Layer | Library |
 |---|---|
-| Monorepo | [Turborepo](https://turbo.build) + [Bun](https://bun.sh) workspaces |
-| Framework | [React 19](https://react.dev) + [Vite 7](https://vitejs.dev) |
-| Routing | [TanStack Router v1](https://tanstack.com/router) |
-| Server state | [TanStack Query v5](https://tanstack.com/query) |
-| Styling | [Tailwind CSS v4](https://tailwindcss.com) |
-| UI components | [shadcn/ui](https://ui.shadcn.com) (via `packages/ui` workspace) |
-| Charts | [lightweight-charts v5](https://tradingview.github.io/lightweight-charts/) |
-| Notifications | [Sonner](https://sonner.emilkowal.ski) |
-| Blockchain | [Stellar](https://stellar.org) / [Soroban](https://soroban.stellar.org) |
-| Oracle | Binance REST (primary) · GMX oracle (fallback) |
-| Type safety | TypeScript 5.9 |
+| Framework | React 18 + TypeScript |
+| Build | Vite 5 |
+| Styling | Tailwind CSS v3 |
+| Routing | React Router v6 |
+| Data fetching | TanStack React Query v5 |
+| Forms | react-hook-form + Zod |
+| Blockchain | @stellar/stellar-sdk v12 |
+| Wallet | @stellar/freighter-api |
+| HTTP | Axios |
+| Charts | Recharts |
+| Icons | Lucide React |
 
 ---
 
-## Project Structure
+## Prerequisites
+
+| Requirement | Version |
+|---|---|
+| Node.js | ≥ 18 |
+| npm / pnpm / yarn | any recent |
+| Freighter browser extension | [freighter.app](https://www.freighter.app) |
+| A Stellar testnet account | [friendbot](https://friendbot.stellar.org) for free testnet XLM |
+
+---
+
+## Setup
+
+### 1. Clone and install
+
+```bash
+git clone <repo>
+cd StellarSend/frontend
+npm install
+```
+
+### 2. Configure environment variables
+
+Copy the example env file and edit it:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_URL` | `http://localhost:8080` | URL of the StellarSend backend API |
+
+If you don't have a backend running, the app will fall back to querying Horizon directly (read-only history and balances work; quote/send endpoints require the backend).
+
+### 3. Start the dev server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173).
+
+---
+
+## Environment Variables
+
+Create a `.env` file at `StellarSend/frontend/.env`:
+
+```env
+# Backend API base URL (no trailing slash)
+VITE_API_URL=http://localhost:8080
+```
+
+In production, set `VITE_API_URL` to your deployed backend URL before running `npm run build`.
+
+---
+
+## How to Run
+
+### Development
+
+```bash
+npm run dev          # Vite dev server at :5173
+npm run type-check   # TypeScript type check without building
+npm run lint         # ESLint
+```
+
+### Production build
+
+```bash
+npm run build        # Emits to dist/
+npm run preview      # Preview the dist/ build locally at :4173
+```
+
+### Deploy (static hosting)
+
+The `dist/` folder is a static SPA. Deploy it to:
+
+- **Vercel**: `vercel --prod` (auto-detected as Vite/React)
+- **Netlify**: Drag-and-drop `dist/` or use `netlify deploy --dir dist`
+- **AWS S3 + CloudFront**: upload `dist/` and set the error page to `index.html`
+- **IPFS / Fleek**: same as S3 approach
+
+Add a `_redirects` file (Netlify) or rewrite rule so all paths fall back to `index.html`:
 
 ```
-so4-market/
-├── apps/
-│   └── web/                        # Main React/Vite application
-│       ├── public/                 # Static assets (favicon, manifest, PWA icons)
-│       ├── scripts/                # Build-time utilities
-│       └── src/
-│           ├── features/
-│           │   ├── earn/           # Earn page — pools, portfolio, rewards
-│           │   ├── referrals/      # Referrals — traders, affiliates, distributions
-│           │   └── trade/          # Trade page — chart, order panel, positions
-│           ├── routes/             # TanStack Router file-based routes
-│           ├── styles/             # Global CSS (landing)
-│           └── ui/                 # Shared UI — Navbar, ThemeProvider, landing sections
+/*  /index.html  200
+```
+
+---
+
+## Folder Structure
+
+```
+src/
+├── types/
+│   └── index.ts            # All TypeScript types (Account, Transaction, Quote, …)
 │
-├── packages/
-│   └── ui/                         # Shared component library (shadcn/ui)
-│       └── src/
-│           ├── components/         # Button, Input, Dialog, Tabs, Skeleton, …
-│           ├── hooks/
-│           ├── lib/
-│           └── styles/
-│               └── globals.css     # Tailwind base + CSS custom properties
+├── lib/
+│   ├── stellar.ts          # Stellar SDK helpers: build tx, path payment, fee estimate
+│   ├── api.ts              # Axios client + backend & Horizon API wrappers
+│   └── utils.ts            # cn(), formatDate(), timeAgo(), copyToClipboard()
 │
-├── turbo.json                      # Turborepo pipeline config
-├── package.json                    # Root workspace manifest
-├── tsconfig.json                   # Root TypeScript config
-└── bun.lock
-```
-
-### Feature module layout
-
-Each feature under `src/features/<name>/` follows the same convention:
-
-```
-<feature>/
-├── components/     # React components (page + sub-components)
-├── data/           # Static data / contract address constants
-├── hooks/          # TanStack Query hooks (data fetching + mutations)
-└── lib/            # Business logic, contract calls, type definitions
+├── context/
+│   └── WalletContext.tsx   # WalletProvider: Freighter state machine via useReducer
+│
+├── hooks/
+│   ├── useWallet.ts        # Convenience hook over WalletContext
+│   ├── useTransactions.ts  # React Query hooks for tx history (infinite scroll)
+│   └── useSendPayment.ts   # Full send flow: quote → sign → submit state machine
+│
+├── components/
+│   ├── layout/
+│   │   ├── Navbar.tsx      # Top nav with logo, links, wallet button
+│   │   ├── Sidebar.tsx     # Left sidebar (desktop)
+│   │   └── Layout.tsx      # Route shell (Outlet + Navbar + Sidebar)
+│   │
+│   ├── ui/
+│   │   ├── Button.tsx      # Variants: primary/secondary/ghost/danger/outline/link
+│   │   ├── Input.tsx       # Input + Select components
+│   │   ├── Card.tsx        # Card, CardHeader, CardTitle, CardBody, CardFooter
+│   │   ├── Badge.tsx       # Badge, StatusBadge, NetworkBadge
+│   │   ├── Modal.tsx       # Portal modal with backdrop, keyboard close
+│   │   └── Spinner.tsx     # Spinner, PageLoader, Skeleton, SkeletonCard, SkeletonRow
+│   │
+│   ├── wallet/
+│   │   ├── ConnectWallet.tsx  # Freighter install modal + connect flow
+│   │   └── WalletInfo.tsx     # Dropdown showing address, balances, disconnect
+│   │
+│   ├── send/
+│   │   ├── SendForm.tsx    # Multi-step form: address, asset, amount, path toggle
+│   │   ├── QuoteCard.tsx   # Exchange quote with countdown, path display, fees
+│   │   ├── ConfirmModal.tsx# Pre-sign confirmation dialog
+│   │   └── SuccessScreen.tsx  # Post-send success with tx hash + explorer link
+│   │
+│   ├── history/
+│   │   ├── TransactionTable.tsx  # Infinite scroll table with search
+│   │   └── TransactionRow.tsx    # Expandable row with detail panel
+│   │
+│   └── dashboard/
+│       ├── BalanceCard.tsx       # XLM + USDC + other balances with hide toggle
+│       ├── QuickStats.tsx        # 4-stat grid: sent/received/count/avg fee
+│       └── RecentTransactions.tsx # Last 5 transactions with explorer links
+│
+└── pages/
+    ├── Home.tsx            # Landing page: hero, features, how-it-works, CTA
+    ├── Dashboard.tsx       # Balance + stats + activity chart + recent transactions
+    ├── Send.tsx            # Send page orchestrating form → quote → confirm → success
+    ├── History.tsx         # History stats + 30-day chart + infinite transaction table
+    ├── Settings.tsx        # Network toggle, slippage, default memo, display prefs
+    └── NotFound.tsx        # 404 page
 ```
 
 ---
 
-## Getting Started
+## Architecture Notes
 
-### Prerequisites
+### Wallet connection flow
 
-| Tool | Version |
-|---|---|
-| [Bun](https://bun.sh) | ≥ 1.3 |
-| [Node.js](https://nodejs.org) | ≥ 20 |
+1. `WalletProvider` detects Freighter on mount via `isConnected()`.
+2. If previously allowed, it calls `getPublicKey()` and auto-reconnects.
+3. Manual connect calls `setAllowed()` (prompts the user in Freighter) then `getPublicKey()`.
+4. Account data is fetched from Horizon every 30 s (configurable in Settings).
 
-### Installation
+### Send payment flow
 
-```bash
-# Clone the repository
-git clone https://github.com/SO4-Markets/so4-monorepo.git
-cd so4-monorepo
-
-# Install all workspace dependencies
-bun install
+```
+SendForm (user input)
+  → useSendPayment.requestQuote()
+    → POST /quotes (backend) → Quote
+  → QuoteCard review
+  → ConfirmModal
+  → useSendPayment.confirmSend()
+    → stellar.buildTransactionFromQuote() → XDR
+    → freighter.signTransaction(xdr)
+    → paymentApi.send(signedXdr) OR stellar.submitTransaction(signedXdr)
+  → SuccessScreen
 ```
 
-### Full local stack (contracts + indexer + web)
+### Horizon fallback
 
-If you need the indexer and contracts running against the web app, follow the
-[Local Full-Stack Integration Guide](./docs/local-full-stack.md). It documents
-prerequisites, deploy/bootstrap, manifest sync, indexer start, smoke flow,
-GraphQL verification, UI verification, troubleshooting, and the definition of
-done. Run `bun run check:integration` before pushing to mirror the CI matrix.
-
-### Running the development server
-
-```bash
-# Start all apps in watch mode
-bun dev
-
-# Or start only the web app
-cd apps/web && bun dev
-```
-
-The app will be available at [http://localhost:3000](http://localhost:3000).
-
-### Building for production
-
-```bash
-bun build
-```
-
-Output is written to `apps/web/.output/`.
+When the backend is unavailable (no `VITE_API_URL` or unreachable), `fetchAccountFromHorizon` and `fetchTransactionsFromHorizon` in `src/lib/api.ts` query the public Stellar Horizon API directly. This means balance display and history work offline from the backend; quote/send still requires the backend.
 
 ---
 
-## Available Scripts
+## Screenshots
 
-Run any of these from the **repository root**:
+### Landing page
+Hero section with animated Stellar gradient, feature grid, and step-by-step guide.
 
-| Command | Description |
-|---|---|
-| `bun dev` | Start all packages in development mode |
-| `bun build` | Build all packages for production |
-| `bun lint` | Lint all packages with ESLint |
-| `bun format` | Format all files with Prettier |
-| `bun typecheck` | Run TypeScript type checks across all packages |
+### Dashboard
+Balance card with hide/show toggle, 4-stat quick stats grid, 7-day area chart, and recent transactions.
 
-## Testing Guide
+### Send Money
+Multi-step form → live quote with expiry countdown → confirm modal → success screen with tx hash.
 
-From a clean checkout, install workspace dependencies once:
+### History
+30-day bar chart, summary stats, and infinite-scroll expandable transaction table.
 
-```bash
-bun install
-```
-
-Run the focused test suites from the repository root:
-
-```bash
-bun run --cwd packages/contracts test
-bun run --cwd apps/web test
-bun run test:e2e
-```
-
-The end-to-end suite uses Playwright. On a fresh machine, Playwright may need
-browser binaries or OS-level system dependencies before `bun run test:e2e` can
-launch browsers. If Playwright reports missing dependencies, install them with
-the Playwright CLI through Bun:
-
-```bash
-bunx playwright install --with-deps
-```
-
-Web tests run with MSW enabled and `onUnhandledRequest: "error"`, so every
-network request made by a test must have an explicit mock handler. Add shared
-handlers in `apps/web/test/msw/handlers.ts` or test-specific handlers with
-`server.use(...)`. Tests must not depend on real external network calls.
-
----
-
-## Architecture
-
-### Oracle / Price feeds
-
-Live candle data and token prices are fetched from the Binance public REST API. If Binance is unavailable or rate-limited, the oracle module automatically retries against the GMX oracle endpoint. Both sources are normalised into a shared `OhlcBar` type (oldest-first, prices as numbers, time in Unix seconds).
-
-### Contract integration
-
-The `lib/stellar.ts`, `lib/earn.ts`, and `lib/referrals.ts` files define the full contract call surface. Each function is currently a **stub** that simulates latency and shows a toast — the real Stellar SDK + Soroban RPC calls are documented inline with `TODO` comments. Contracts to integrate:
-
-- `ExchangeRouter` — `createOrder` (increase / decrease / swap)
-- `DataStore` — on-chain key-value protocol config
-- `SyntheticsReader` — `getMarketInfo`, `getPositionInfo`, `getOrderInfo` (batched)
-- `OrderVault` — holds collateral between order creation and execution
-- `StakingRouter` — `stakeSO4`, `unstakeSO4`
-- `ReferralsRouter` — `setTraderReferralCodeByUser`, `registerCode`
-
-### Theme system
-
-The theme provider writes `dark` or `light` as a class on `<html>`. A blocking inline script in `<head>` reads `localStorage` before first paint to prevent flash of wrong theme. The chart component uses a `MutationObserver` on `document.documentElement` to re-apply color options instantly when the class changes.
+### Settings
+Network selector (testnet/mainnet), slippage tolerance, auto-refresh interval, and account info.
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Please follow the steps below.
-
-### 1. Fork and clone
-
-```bash
-git clone https://github.com/SO4-Markets/so4-monorepo.git
-cd so4-monorepo
-bun install
-```
-
-### 2. Create a branch
-
-Use a short, descriptive name:
-
-```bash
-git checkout -b feat/order-book-component
-git checkout -b fix/chart-theme-flash
-git checkout -b chore/upgrade-tanstack-query
-```
-
-### 3. Make your changes
-
-- Follow the existing feature-module structure (`components/`, `hooks/`, `lib/`, `data/`).
-- Keep components focused — one responsibility per file.
-- Use Tailwind utility classes; avoid inline styles.
-- Run `bun format` before committing.
-
-### 4. Commit style
-
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-feat: add limit order confirmation dialog
-fix: resolve chart flicker on theme toggle
-chore: upgrade lightweight-charts to 5.3
-docs: document contract integration stubs
-refactor: extract oracle normalisation into shared util
-```
-
-### 5. Open a pull request
-
-Push your branch and open a PR against `main`. Include:
-
-- **What** changed and **why**.
-- Screenshots or recordings for UI changes.
-- Notes on any contract-integration assumptions.
-
-### Code style
-
-| Rule | Detail |
-|---|---|
-| Formatter | Prettier (`bun format`) — config in `.prettierrc` |
-| Linter | ESLint with `@tanstack/eslint-config` |
-| Imports | Absolute workspace imports (`@workspace/ui/...`) preferred over deep relative paths |
-| Comments | Only for non-obvious intent — avoid restating what the code already says |
-
-### Reporting issues
-
-Open an issue on GitHub with:
-
-- A clear title and description.
-- Steps to reproduce (for bugs).
-- The expected vs actual behaviour.
-- Browser / OS / Bun version if relevant.
+1. Fork the repository and create a feature branch.
+2. Run `npm run type-check && npm run lint` before committing.
+3. Write clear commit messages describing the change.
+4. Open a pull request against `main`.
 
 ---
 
 ## License
 
-```
-MIT License
+MIT © StellarSend contributors.
 
-Copyright (c) 2026 so4 labs
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
----
-
-<p align="center">
-  Built by <a href="https://so4.market">so4 labs</a> ·
-  <a href="https://twitter.com/so4market">@so4market</a>
-</p>
-
+This software is provided for educational and demonstration purposes. It is not affiliated with or endorsed by the Stellar Development Foundation.

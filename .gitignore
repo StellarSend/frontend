@@ -1,45 +1,5 @@
-# Dependencies
-node_modules
-.pnp
-.pnp.js
-
-# Local env files
+node_modules/
+dist/
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Testing
-coverage
-
-# Turbo
-.turbo
-
-# Vercel
-.vercel
-
-# Build Outputs
-dist
-.output
-.nitro
-.tanstack
-.vinxi
-
-# Debug
-npm-debug.log*
-
-# Misc
-.DS_Store
-*.pem
-
-# Local planning docs
-implementation-plan.md
-
-# Issue push progress tracker
-.issues-progress.json
-ISSUES.md
-push-issues.py
-
-# VSCode
-fix.md
+*.env
