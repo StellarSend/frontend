@@ -3,6 +3,7 @@
 StellarSend is a production-quality, non-custodial web application for sending money globally using the [Stellar blockchain](https://stellar.org). It connects to the Freighter browser wallet, fetches live exchange quotes (via a backend or Stellar Horizon directly), builds and signs transactions client-side, and submits them to the network.
 
 ---
+![Uploading image.png…]()
 
 ## Features
 
