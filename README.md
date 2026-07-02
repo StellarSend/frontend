@@ -16,6 +16,7 @@ StellarSend is a production-quality, non-custodial web application for sending m
 - **Activity charts** — 7-day and 30-day volume charts (recharts)
 - **Testnet / Mainnet toggle** — switch with one click in Settings
 - **Dark-navy UI** — professional indigo/Stellar-blue design, fully responsive
+<img width="1920" height="1200" alt="image" src="https://github.com/user-attachments/assets/e1e72129-bfeb-42bf-b569-33d83cc85801" />
 
 ---
 
