@@ -14,6 +14,11 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Send = lazy(() => import('@/pages/Send'))
 const History = lazy(() => import('@/pages/History'))
 const Settings = lazy(() => import('@/pages/Settings'))
+const Subscriptions = lazy(() => import('@/pages/Subscriptions'))
+const BatchSend = lazy(() => import('@/pages/BatchSend'))
+const PaymentRequests = lazy(() => import('@/pages/PaymentRequests'))
+const PayRequest = lazy(() => import('@/pages/PayRequest'))
+const EscrowPage = lazy(() => import('@/pages/Escrow'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 // ─── React Query config ───────────────────────────────────────────────────────
@@ -54,6 +59,11 @@ export default function App() {
                 <Route path="/send" element={<Send />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/subscriptions" element={<Subscriptions />} />
+                <Route path="/batch" element={<BatchSend />} />
+                <Route path="/requests" element={<PaymentRequests />} />
+                <Route path="/pay/:id" element={<PayRequest />} />
+                <Route path="/escrow" element={<EscrowPage />} />
               </Route>
 
               {/* Redirects */}

@@ -9,6 +9,10 @@ import {
   ExternalLink,
   TrendingUp,
   ChevronRight,
+  Repeat,
+  Layers,
+  FileText,
+  Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWallet } from '@/hooks/useWallet'
@@ -18,6 +22,10 @@ import { truncateAddress, formatXLM } from '@/lib/stellar'
 const primaryLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/send', label: 'Send Money', icon: Send },
+  { to: '/batch', label: 'Batch Payments', icon: Layers },
+  { to: '/subscriptions', label: 'Subscriptions', icon: Repeat },
+  { to: '/requests', label: 'Payment Requests', icon: FileText },
+  { to: '/escrow', label: 'Escrow', icon: Lock },
   { to: '/history', label: 'History', icon: History },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]

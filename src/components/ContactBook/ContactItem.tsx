@@ -1,6 +1,7 @@
 import React from 'react'
 import { useClipboard } from '../../hooks/useClipboard'
 import type { Contact } from '../../hooks/useContacts'
+export type { Contact }
 interface Props { contact: Contact; onRemove: () => void; onSelect?: (a: string) => void }
 export function ContactItem({ contact, onRemove, onSelect }: Props) {
   const { copy, copied } = useClipboard()

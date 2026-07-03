@@ -8,6 +8,10 @@ import {
   Zap,
   Menu,
   X,
+  Repeat,
+  Layers,
+  FileText,
+  Lock,
 } from 'lucide-react'
 import { useState } from 'react'
 import { ConnectWallet } from '@/components/wallet/ConnectWallet'
@@ -19,6 +23,10 @@ import { cn } from '@/lib/utils'
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/send', label: 'Send', icon: Send },
+  { to: '/batch', label: 'Batch', icon: Layers },
+  { to: '/subscriptions', label: 'Subscriptions', icon: Repeat },
+  { to: '/requests', label: 'Requests', icon: FileText },
+  { to: '/escrow', label: 'Escrow', icon: Lock },
   { to: '/history', label: 'History', icon: History },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]

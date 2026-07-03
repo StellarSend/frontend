@@ -6,7 +6,6 @@ import './index.css'
 // Polyfill Buffer for Stellar SDK in browser
 import { Buffer } from 'buffer'
 if (typeof window !== 'undefined' && !window.Buffer) {
-  // @ts-expect-error polyfill
   window.Buffer = Buffer
 }
 

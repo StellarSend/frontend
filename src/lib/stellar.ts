@@ -230,6 +230,75 @@ export async function buildTransactionFromQuote(
   })
 }
 
+// ─── Build batch / split payment transaction ─────────────────────────────────
+// One transaction, one payment operation per recipient — this is what makes it
+// a true "batch": either every payment in the batch lands atomically, or (if
+// the transaction fails) none of them do.
+
+interface BatchRecipientInput {
+  destinationAddress: string
+  amount: string
+}
+
+interface BuildBatchPaymentParams {
+  sourcePublicKey: string
+  asset: StellarAsset
+  recipients: BatchRecipientInput[]
+  memo?: string
+  network: Network
+  timeoutSeconds?: number
+}
+
+export const MAX_BATCH_RECIPIENTS = 100
+
+export async function buildBatchPaymentTransaction(
+  params: BuildBatchPaymentParams,
+): Promise<string> {
+  const { sourcePublicKey, asset, recipients, memo, network, timeoutSeconds = 30 } = params
+
+  if (recipients.length === 0) {
+    throw new Error('A batch payment needs at least one recipient')
+  }
+  if (recipients.length > MAX_BATCH_RECIPIENTS) {
+    throw new Error(`A batch payment supports at most ${MAX_BATCH_RECIPIENTS} recipients`)
+  }
+
+  const server = getServer(network)
+  const passphrase = getNetworkPassphrase(network)
+  const fee = await estimateFee(network)
+
+  const sourceAccount = await server.loadAccount(sourcePublicKey)
+  const stellarAsset = toStellarAsset(asset)
+
+  const builder = new TransactionBuilder(sourceAccount, {
+    fee: String(Number(fee) * recipients.length),
+    networkPassphrase: passphrase,
+  })
+
+  for (const recipient of recipients) {
+    builder.addOperation(
+      Operation.payment({
+        destination: recipient.destinationAddress,
+        asset: stellarAsset,
+        amount: recipient.amount,
+      }),
+    )
+  }
+
+  builder.setTimeout(timeoutSeconds)
+
+  if (memo?.trim()) {
+    const trimmed = memo.trim()
+    if (/^\d+$/.test(trimmed) && BigInt(trimmed) <= BigInt('18446744073709551615')) {
+      builder.addMemo(Memo.id(trimmed))
+    } else {
+      builder.addMemo(Memo.text(trimmed.slice(0, 28)))
+    }
+  }
+
+  return builder.build().toXDR()
+}
+
 // ─── Submit transaction ───────────────────────────────────────────────────────
 
 export async function submitTransaction(

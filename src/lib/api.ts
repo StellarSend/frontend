@@ -10,6 +10,14 @@ import type {
   TransactionFilters,
   TransactionPage,
   PaginationParams,
+  Subscription,
+  CreateSubscriptionRequest,
+  BatchPaymentRequest,
+  BatchPaymentResult,
+  PaymentRequest,
+  CreatePaymentRequestPayload,
+  Escrow,
+  CreateEscrowRequest,
 } from '@/types'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -116,6 +124,171 @@ export const paymentApi = {
       method: 'POST',
       url: '/payments/build',
       data: params,
+    }),
+}
+
+// ─── Subscriptions (recurring payments) ───────────────────────────────────────
+// Assumed backend surface — paths may need small adjustments once the backend
+// team's actual routes land, but the shapes here follow the same
+// request/response conventions as quoteApi/paymentApi above.
+
+export const subscriptionApi = {
+  list: (publicKey: string) =>
+    request<Subscription[]>({
+      method: 'GET',
+      url: '/api/subscriptions',
+      params: { publicKey },
+    }),
+
+  get: (subscriptionId: string) =>
+    request<Subscription>({
+      method: 'GET',
+      url: `/api/subscriptions/${subscriptionId}`,
+    }),
+
+  /** Ask the backend to build the unsigned XDR for the first-payment / authorization transaction. */
+  buildCreateTransaction: (payload: CreateSubscriptionRequest) =>
+    request<{ xdr: string; fee: string }>({
+      method: 'POST',
+      url: '/api/subscriptions/build',
+      data: payload,
+    }),
+
+  /** Submit the Freighter-signed XDR to register the recurring schedule. */
+  create: (payload: CreateSubscriptionRequest & { signedXdr: string }) =>
+    request<Subscription>({
+      method: 'POST',
+      url: '/api/subscriptions',
+      data: payload,
+    }),
+
+  buildCancelTransaction: (subscriptionId: string) =>
+    request<{ xdr: string; fee: string }>({
+      method: 'POST',
+      url: `/api/subscriptions/${subscriptionId}/cancel/build`,
+    }),
+
+  cancel: (subscriptionId: string, signedXdr?: string) =>
+    request<Subscription>({
+      method: 'POST',
+      url: `/api/subscriptions/${subscriptionId}/cancel`,
+      data: { signedXdr },
+    }),
+}
+
+// ─── Batch / split payments ───────────────────────────────────────────────────
+
+export const batchPaymentApi = {
+  build: (params: {
+    sourcePublicKey: string
+    assetCode: string
+    assetIssuer: string | null
+    recipients: { destinationAddress: string; amount: string; memo?: string }[]
+  }) =>
+    request<{ xdr: string; fee: string }>({
+      method: 'POST',
+      url: '/api/payments/batch/build',
+      data: params,
+    }),
+
+  send: (payload: BatchPaymentRequest) =>
+    request<BatchPaymentResult>({
+      method: 'POST',
+      url: '/api/payments/batch',
+      data: payload,
+    }),
+
+  getStatus: (batchId: string) =>
+    request<BatchPaymentResult>({
+      method: 'GET',
+      url: `/api/payments/batch/${batchId}`,
+    }),
+}
+
+// ─── Payment requests / invoicing ─────────────────────────────────────────────
+
+export const paymentRequestApi = {
+  create: (payload: CreatePaymentRequestPayload) =>
+    request<PaymentRequest>({
+      method: 'POST',
+      url: '/api/payment-requests',
+      data: payload,
+    }),
+
+  get: (requestId: string) =>
+    request<PaymentRequest>({
+      method: 'GET',
+      url: `/api/payment-requests/${requestId}`,
+    }),
+
+  list: (publicKey: string) =>
+    request<PaymentRequest[]>({
+      method: 'GET',
+      url: '/api/payment-requests',
+      params: { publicKey },
+    }),
+
+  cancel: (requestId: string) =>
+    request<PaymentRequest>({
+      method: 'POST',
+      url: `/api/payment-requests/${requestId}/cancel`,
+    }),
+}
+
+// ─── Escrow / conditional transfers ───────────────────────────────────────────
+
+export const escrowApi = {
+  list: (publicKey: string) =>
+    request<Escrow[]>({
+      method: 'GET',
+      url: '/api/escrows',
+      params: { publicKey },
+    }),
+
+  get: (escrowId: string) =>
+    request<Escrow>({
+      method: 'GET',
+      url: `/api/escrows/${escrowId}`,
+    }),
+
+  buildCreateTransaction: (payload: CreateEscrowRequest) =>
+    request<{ xdr: string; fee: string }>({
+      method: 'POST',
+      url: '/api/escrows/build',
+      data: payload,
+    }),
+
+  create: (payload: CreateEscrowRequest & { signedXdr: string }) =>
+    request<Escrow>({
+      method: 'POST',
+      url: '/api/escrows',
+      data: payload,
+    }),
+
+  buildReleaseTransaction: (escrowId: string) =>
+    request<{ xdr: string; fee: string }>({
+      method: 'POST',
+      url: `/api/escrows/${escrowId}/release/build`,
+    }),
+
+  release: (escrowId: string, signedXdr: string) =>
+    request<Escrow>({
+      method: 'POST',
+      url: `/api/escrows/${escrowId}/release`,
+      data: { signedXdr },
+    }),
+
+  buildRefundTransaction: (escrowId: string) =>
+    request<{ xdr: string; fee: string }>({
+      method: 'POST',
+      url: `/api/escrows/${escrowId}/refund/build`,
+    }),
+
+  refund: (escrowId: string, signedXdr: string) =>
+    request<Escrow>({
+      method: 'POST',
+      url: `/api/escrows/${escrowId}/refund`,
+      data: { signedXdr },
     }),
 }
 

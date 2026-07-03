@@ -256,3 +256,186 @@ export interface TransactionFilters {
   assetCode?: string
   direction?: 'sent' | 'received'
 }
+
+// ─── Subscriptions (recurring payments) ───────────────────────────────────────
+
+export type SubscriptionInterval = 'daily' | 'weekly' | 'monthly' | 'yearly'
+
+export type SubscriptionStatus = 'active' | 'paused' | 'cancelled' | 'completed'
+
+export interface Subscription {
+  id: string
+  sourcePublicKey: string
+  destinationAddress: string
+  asset: StellarAsset
+  amount: string
+  interval: SubscriptionInterval
+  startDate: string
+  nextRunAt: string | null
+  status: SubscriptionStatus
+  memo?: string
+  createdAt: string
+  cancelledAt?: string
+  runCount: number
+}
+
+export interface CreateSubscriptionRequest {
+  sourcePublicKey: string
+  destinationAddress: string
+  assetCode: string
+  assetIssuer: string | null
+  amount: string
+  interval: SubscriptionInterval
+  startDate: string
+  memo?: string
+}
+
+export interface SubscriptionFormValues {
+  destinationAddress: string
+  assetCode: string
+  amount: string
+  interval: SubscriptionInterval
+  startDate: string
+  memo: string
+}
+
+// ─── Batch / split payments ───────────────────────────────────────────────────
+
+export interface BatchRecipient {
+  destinationAddress: string
+  amount: string
+  memo?: string
+}
+
+export interface BatchPaymentFormValues {
+  assetCode: string
+  recipients: BatchRecipient[]
+}
+
+export interface BatchPaymentRequest {
+  sourcePublicKey: string
+  assetCode: string
+  assetIssuer: string | null
+  recipients: BatchRecipient[]
+  signedXdr: string
+}
+
+export interface BatchPaymentResult {
+  batchId: string
+  transactionHash: string
+  status: TransactionStatus
+  recipientCount: number
+  totalAmount: string
+  createdAt: string
+}
+
+// ─── Payment requests / invoicing ─────────────────────────────────────────────
+
+export type PaymentRequestStatus = 'open' | 'paid' | 'expired' | 'cancelled'
+
+export interface PaymentRequest {
+  id: string
+  requesterPublicKey: string
+  assetCode: string
+  assetIssuer: string | null
+  amount: string
+  memo?: string
+  expiresAt?: string
+  status: PaymentRequestStatus
+  createdAt: string
+  paidTxHash?: string
+}
+
+export interface CreatePaymentRequestPayload {
+  requesterPublicKey: string
+  assetCode: string
+  assetIssuer: string | null
+  amount: string
+  memo?: string
+  expiresAt?: string
+}
+
+export interface PaymentRequestFormValues {
+  assetCode: string
+  amount: string
+  memo: string
+  expiresInHours: string
+}
+
+// ─── Escrow / conditional transfers ───────────────────────────────────────────
+
+export type EscrowStatus = 'funded' | 'released' | 'refunded' | 'cancelled'
+
+export type EscrowRole = 'depositor' | 'beneficiary' | 'arbiter'
+
+export interface Escrow {
+  id: string
+  depositorPublicKey: string
+  beneficiaryPublicKey: string
+  arbiterPublicKey: string | null
+  assetCode: string
+  assetIssuer: string | null
+  amount: string
+  unlockTime: string
+  status: EscrowStatus
+  createdAt: string
+  releasedAt?: string
+  refundedAt?: string
+  contractId?: string
+}
+
+export interface CreateEscrowRequest {
+  depositorPublicKey: string
+  beneficiaryPublicKey: string
+  arbiterPublicKey: string | null
+  assetCode: string
+  assetIssuer: string | null
+  amount: string
+  unlockTime: string
+}
+
+export interface EscrowFormValues {
+  beneficiaryPublicKey: string
+  arbiterPublicKey: string
+  assetCode: string
+  amount: string
+  unlockDate: string
+}
+
+/**
+ * Determines which actions the current wallet may take on an escrow, mirroring
+ * the gating enforced by the on-chain contract:
+ *  - refund: depositor only, and only after unlockTime has passed with funds still held
+ *  - release: beneficiary (any time while funded) OR arbiter (any time while funded)
+ *  - depositor cannot release; nobody but the arbiter/beneficiary can release before unlock
+ */
+export function getEscrowPermissions(
+  escrow: Escrow,
+  publicKey: string | null,
+  now: Date = new Date(),
+): { canRelease: boolean; canRefund: boolean; role: EscrowRole | null } {
+  if (!publicKey || escrow.status !== 'funded') {
+    return { canRelease: false, canRefund: false, role: null }
+  }
+
+  const isDepositor = escrow.depositorPublicKey === publicKey
+  const isBeneficiary = escrow.beneficiaryPublicKey === publicKey
+  const isArbiter = !!escrow.arbiterPublicKey && escrow.arbiterPublicKey === publicKey
+  const unlocked = now.getTime() >= new Date(escrow.unlockTime).getTime()
+
+  const role: EscrowRole | null = isDepositor
+    ? 'depositor'
+    : isBeneficiary
+      ? 'beneficiary'
+      : isArbiter
+        ? 'arbiter'
+        : null
+
+  // Beneficiary or arbiter can release funds to the beneficiary at any time.
+  const canRelease = isBeneficiary || isArbiter
+  // Only the depositor can reclaim funds, and only once the unlock time has passed
+  // (i.e. the beneficiary/arbiter window has elapsed without a release).
+  const canRefund = isDepositor && unlocked
+
+  return { canRelease, canRefund, role }
+}
