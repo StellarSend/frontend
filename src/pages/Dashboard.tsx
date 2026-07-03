@@ -131,8 +131,8 @@ function ActivityChart() {
 // ─── Quick actions ────────────────────────────────────────────────────────────
 
 function QuickActions() {
+  // "Send Money" lives once, in the page header above — not duplicated here.
   const actions = [
-    { label: 'Send Money', to: '/send', icon: <Send size={18} />, color: 'bg-stellar-gradient' },
     { label: 'History', to: '/history', icon: <History size={18} />, color: 'bg-navy-700' },
     { label: 'Settings', to: '/settings', icon: <Settings size={18} />, color: 'bg-navy-700' },
   ]
@@ -178,8 +178,18 @@ export default function Dashboard() {
             Overview of your Stellar account
           </p>
         </div>
-        <Link to="/send">
-          <Button icon={<Send size={15} />} iconRight={<ArrowRight size={14} />}>
+        <Link to="/send" className="group">
+          <Button
+            size="lg"
+            icon={<Send size={16} />}
+            iconRight={
+              <ArrowRight
+                size={15}
+                className="transition-transform duration-200 group-hover:translate-x-0.5"
+              />
+            }
+            className="shadow-lg shadow-stellar-500/20"
+          >
             Send Money
           </Button>
         </Link>
