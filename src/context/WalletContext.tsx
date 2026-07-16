@@ -210,6 +210,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useWalletContext(): WalletContextValue {
   const ctx = useContext(WalletContext)
   if (!ctx) throw new Error('useWalletContext must be used inside WalletProvider')
