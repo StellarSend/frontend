@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Settings as SettingsIcon,
   Globe,
   Sliders,
   Bell,
@@ -15,7 +14,7 @@ import {
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
-import { Badge, NetworkBadge } from '@/components/ui/Badge'
+import { NetworkBadge } from '@/components/ui/Badge'
 import { ConnectWallet } from '@/components/wallet/ConnectWallet'
 import { useWallet } from '@/hooks/useWallet'
 import { truncateAddress, formatXLM } from '@/lib/stellar'
@@ -28,7 +27,9 @@ function useSettings() {
     try {
       const saved = localStorage.getItem('stellarsend_settings')
       if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) }
-    } catch {}
+    } catch {
+      // corrupted or unavailable localStorage — fall back to defaults
+    }
     return DEFAULT_SETTINGS
   })
 

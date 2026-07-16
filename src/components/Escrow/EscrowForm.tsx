@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -15,36 +15,74 @@ const minUnlockLocal = () => {
   return d.toISOString().slice(0, 16)
 }
 
-const escrowSchema = z
-  .object({
-    beneficiaryPublicKey: z
-      .string()
-      .min(1, 'Beneficiary address is required')
-      .refine(isValidStellarAddress, 'Invalid Stellar address'),
-    arbiterPublicKey: z
-      .string()
-      .optional()
-      .default('')
-      .refine((v) => v === '' || isValidStellarAddress(v), 'Invalid Stellar address'),
-    assetCode: z.string().min(1),
-    amount: z
-      .string()
-      .min(1, 'Amount is required')
-      .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, 'Amount must be a positive number'),
-    unlockDate: z.string().min(1, 'Unlock time is required'),
-  })
-  .refine((v) => new Date(v.unlockDate).getTime() > Date.now(), {
-    message: 'Unlock time must be in the future',
-    path: ['unlockDate'],
-  })
+function buildEscrowSchema(depositorPublicKey: string | null) {
+  return z
+    .object({
+      beneficiaryPublicKey: z
+        .string()
+        .min(1, 'Beneficiary address is required')
+        .refine(isValidStellarAddress, 'Invalid Stellar address'),
+      arbiterPublicKey: z
+        .string()
+        .optional()
+        .default('')
+        .refine((v) => v === '' || isValidStellarAddress(v), 'Invalid Stellar address'),
+      assetCode: z.string().min(1),
+      amount: z
+        .string()
+        .min(1, 'Amount is required')
+        .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, 'Amount must be a positive number'),
+      unlockDate: z.string().min(1, 'Unlock time is required'),
+    })
+    .refine((v) => new Date(v.unlockDate).getTime() > Date.now(), {
+      message: 'Unlock time must be in the future',
+      path: ['unlockDate'],
+    })
+    .refine(
+      (v) =>
+        !depositorPublicKey ||
+        v.beneficiaryPublicKey === '' ||
+        v.beneficiaryPublicKey !== depositorPublicKey,
+      {
+        message: 'Beneficiary cannot be your own wallet address (self-escrow is not allowed)',
+        path: ['beneficiaryPublicKey'],
+      },
+    )
+    .refine(
+      (v) =>
+        !depositorPublicKey || v.arbiterPublicKey === '' || v.arbiterPublicKey !== depositorPublicKey,
+      {
+        message: 'Arbiter cannot be your own wallet address',
+        path: ['arbiterPublicKey'],
+      },
+    )
+    .refine(
+      (v) =>
+        v.arbiterPublicKey === '' ||
+        v.beneficiaryPublicKey === '' ||
+        v.arbiterPublicKey !== v.beneficiaryPublicKey,
+      {
+        message: 'Arbiter cannot be the same address as the beneficiary',
+        path: ['arbiterPublicKey'],
+      },
+    )
+}
 
 interface EscrowFormProps {
   onSubmit: (values: EscrowFormValues) => void
   isLoading?: boolean
   supportedAssets: { code: string; name: string }[]
+  depositorPublicKey?: string | null
 }
 
-export function EscrowForm({ onSubmit, isLoading = false, supportedAssets }: EscrowFormProps) {
+export function EscrowForm({
+  onSubmit,
+  isLoading = false,
+  supportedAssets,
+  depositorPublicKey = null,
+}: EscrowFormProps) {
+  const escrowSchema = useMemo(() => buildEscrowSchema(depositorPublicKey), [depositorPublicKey])
+
   const {
     register,
     handleSubmit,

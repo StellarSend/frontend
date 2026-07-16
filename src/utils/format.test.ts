@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatAmount, formatDate, formatCurrency } from './format'
+import { formatAmount, formatCurrency } from './format'
 
 describe('formatAmount', () => {
   it('formats with 2 decimal places', () => expect(formatAmount(1234.5)).toBe('1,234.50'))

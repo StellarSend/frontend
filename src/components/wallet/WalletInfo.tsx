@@ -9,7 +9,7 @@ import {
   Check,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { Badge, NetworkBadge } from '@/components/ui/Badge'
+import { NetworkBadge } from '@/components/ui/Badge'
 import { useWallet } from '@/hooks/useWallet'
 import { truncateAddress, formatXLM, formatAmount } from '@/lib/stellar'
 import { copyToClipboard } from '@/lib/utils'

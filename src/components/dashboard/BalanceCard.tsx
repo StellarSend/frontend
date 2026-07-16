@@ -7,7 +7,7 @@ import { useWallet } from '@/hooks/useWallet'
 import { formatXLM, formatAmount } from '@/lib/stellar'
 
 export function BalanceCard() {
-  const { account, xlmBalance, usdcBalance, network, refreshAccount, isConnected } = useWallet()
+  const { account, xlmBalance, usdcBalance, network, refreshAccount } = useWallet()
   const [hidden, setHidden] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -20,7 +20,7 @@ export function BalanceCard() {
     }
   }
 
-  const mask = (val: string) => '••••••'
+  const mask = (_val: string) => '••••••'
 
   return (
     <Card glow className="relative overflow-hidden">
