@@ -4,8 +4,6 @@ import { ConnectWalletScreen } from '@/components/wallet/ConnectWallet'
 import { TransactionTable } from '@/components/history/TransactionTable'
 import { useWallet } from '@/hooks/useWallet'
 import {
-  AreaChart,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,

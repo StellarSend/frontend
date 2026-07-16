@@ -1,5 +1,5 @@
 import React from 'react'
-import { CheckCircle, XCircle, Clock, AlertCircle, Loader2 } from 'lucide-react'
+import { CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { TransactionStatus } from '@/types'
 
