@@ -75,7 +75,11 @@ export default function EscrowPage() {
           )}
 
           {(state.step === 'form' || state.step === 'error') && (
-            <EscrowForm onSubmit={reviewEscrow} supportedAssets={supportedAssets} />
+            <EscrowForm
+              onSubmit={reviewEscrow}
+              supportedAssets={supportedAssets}
+              depositorPublicKey={publicKey}
+            />
           )}
 
           <EscrowList
