@@ -71,4 +71,41 @@ describe('fetchAccountFromHorizon', () => {
       'Horizon error: 503',
     )
   })
+
+  it('maps thresholds, flags, and every balance — not just the native XLM one', async () => {
+    mockFetchOnce({
+      account_id: PUBLIC_KEY,
+      sequence: '42',
+      subentry_count: 2,
+      last_modified_ledger: 100,
+      thresholds: { low_threshold: 1, med_threshold: 2, high_threshold: 3 },
+      flags: { auth_required: true, auth_revocable: false, auth_immutable: false },
+      balances: [
+        { asset_type: 'native', balance: '100.5000000' },
+        {
+          asset_type: 'credit_alphanum4',
+          asset_code: 'USDC',
+          asset_issuer: 'GISSUER',
+          balance: '10.0000000',
+          buying_liabilities: '0',
+          selling_liabilities: '0',
+        },
+      ],
+    })
+
+    const account = await fetchAccountFromHorizon(PUBLIC_KEY, 'testnet')
+
+    expect(account.sequence).toBe('42')
+    expect(account.subentryCount).toBe(2)
+    expect(account.thresholds).toEqual({ lowThreshold: 1, medThreshold: 2, highThreshold: 3 })
+    expect(account.flags).toEqual({
+      authRequired: true,
+      authRevocable: false,
+      authImmutable: false,
+    })
+    expect(account.balances).toHaveLength(2)
+    expect(account.balances[0].asset.code).toBe('XLM')
+    expect(account.balances[1].asset.code).toBe('USDC')
+    expect(account.balances[1].asset.issuer).toBe('GISSUER')
+  })
 })
