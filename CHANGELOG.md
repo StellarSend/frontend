@@ -6,6 +6,9 @@
 - Transaction history
 - Dark mode
 - Exchange rate display
+- Test coverage for `horizonUrl`/`fetchAccountFromHorizon`'s
+  testnet/mainnet host selection, error handling, and account-info
+  mapping (#21)
 
 ### Fixed
 - EscrowForm now rejects self-escrow (beneficiary === depositor) and
