@@ -13,6 +13,9 @@
 ### Fixed
 - EscrowForm now rejects self-escrow (beneficiary === depositor) and
   arbiter addresses that match the depositor or beneficiary (#23)
+- `useTheme` now subscribes to live OS theme changes when set to
+  `'system'`, instead of reading `matchMedia(...).matches` once and
+  going stale until `theme` itself changes (#31)
 
 ### Removed
 - Removed the orphaned `useStellarAccount` hook: it had no call sites,
