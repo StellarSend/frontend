@@ -324,10 +324,17 @@ export const transactionApi = {
 const HORIZON_TESTNET = 'https://horizon-testnet.stellar.org'
 const HORIZON_MAINNET = 'https://horizon.stellar.org'
 
+/** Resolves the Horizon host for `network` — always thread the caller's
+ * currently selected network through here rather than hardcoding a host;
+ * a hardcoded mainnet URL is what made the now-removed `useStellarAccount`
+ * hook silently 404 on valid testnet accounts (#21). */
 export function horizonUrl(network: 'testnet' | 'mainnet') {
   return network === 'testnet' ? HORIZON_TESTNET : HORIZON_MAINNET
 }
 
+/** Fetches full account state from Horizon for the given `network`. This is
+ * the network-aware source of truth `useWallet`'s account state is built
+ * on — prefer it (or that hook) over any new ad-hoc Horizon call. */
 export async function fetchAccountFromHorizon(
   publicKey: string,
   network: 'testnet' | 'mainnet',
