@@ -55,4 +55,12 @@ describe('fetchAccountFromHorizon', () => {
       `https://horizon.stellar.org/accounts/${PUBLIC_KEY}`,
     )
   })
+
+  it('throws a clear "not found" error on a 404, instead of the raw status', async () => {
+    mockFetchOnce({}, 404)
+
+    await expect(fetchAccountFromHorizon(PUBLIC_KEY, 'testnet')).rejects.toThrow(
+      'Account not found on Stellar network',
+    )
+  })
 })
