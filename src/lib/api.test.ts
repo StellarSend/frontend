@@ -63,4 +63,12 @@ describe('fetchAccountFromHorizon', () => {
       'Account not found on Stellar network',
     )
   })
+
+  it('throws a Horizon-error message on other non-ok statuses', async () => {
+    mockFetchOnce({}, 503)
+
+    await expect(fetchAccountFromHorizon(PUBLIC_KEY, 'testnet')).rejects.toThrow(
+      'Horizon error: 503',
+    )
+  })
 })
