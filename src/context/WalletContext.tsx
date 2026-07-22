@@ -89,6 +89,14 @@ const WalletContext = createContext<WalletContextValue | null>(null)
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [wallet, dispatch] = useReducer(walletReducer, initialState)
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Mirrors wallet.publicKey for use inside setInterval callbacks below,
+  // which close over stale state if they read `wallet` directly instead of
+  // a ref kept current via this effect.
+  const publicKeyRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    publicKeyRef.current = wallet.publicKey
+  }, [wallet.publicKey])
 
   // Load persisted network preference
   useEffect(() => {
