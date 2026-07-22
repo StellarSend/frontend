@@ -25,9 +25,10 @@ type WalletAction =
   | { type: 'SET_CONNECTED'; publicKey: string }
   | { type: 'SET_DISCONNECTED' }
   | { type: 'SET_ERROR'; error: string }
-  | { type: 'SET_ACCOUNT'; account: AccountInfo }
+  | { type: 'SET_ACCOUNT'; account: AccountInfo | null }
   | { type: 'SET_FREIGHTER_INSTALLED'; installed: boolean }
   | { type: 'SET_NETWORK'; network: Network }
+  | { type: 'WALLET_CHANGED'; error: string }
 
 function walletReducer(state: WalletState, action: WalletAction): WalletState {
   switch (action.type) {
@@ -45,6 +46,17 @@ function walletReducer(state: WalletState, action: WalletAction): WalletState {
       return { ...state, isFreighterInstalled: action.installed }
     case 'SET_NETWORK':
       return { ...state, network: action.network }
+    case 'WALLET_CHANGED':
+      // Freighter's active account changed underneath us - the publicKey
+      // we've been holding is stale, so clear it rather than risk building
+      // or signing a transaction against the wrong account.
+      return {
+        ...state,
+        status: 'error',
+        publicKey: null,
+        account: null,
+        error: action.error,
+      }
     default:
       return state
   }
