@@ -161,7 +161,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current)
     }
-  }, [wallet.status, refreshAccount])
+    // wallet.network is included explicitly (not just implied via
+    // refreshAccount's own identity change) so a network switch while
+    // connected always triggers an immediate refetch on this exact line,
+    // not just as a side effect of how refreshAccount happens to memoize.
+  }, [wallet.status, wallet.network, refreshAccount])
 
   // Freighter exposes no account/network-change event (see WALLET_POLL_INTERVAL_MS
   // above), so reconcile by polling getPublicKey() while connected. A mismatch means
