@@ -77,3 +77,34 @@ describe('WalletProvider connect/disconnect', () => {
     expect(result.current.wallet.account).toBeNull()
   })
 })
+
+describe('setNetwork', () => {
+  it('synchronously clears the stale account and refetches for the new network', async () => {
+    const { result } = await connectWallet(PUBLIC_KEY_A)
+
+    await waitFor(() => expect(result.current.wallet.account).not.toBeNull())
+    expect(apiMocks.fetchAccountFromHorizon).toHaveBeenCalledWith(PUBLIC_KEY_A, 'testnet')
+
+    let resolveFetch!: (value: ReturnType<typeof mockAccount>) => void
+    apiMocks.fetchAccountFromHorizon.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveFetch = resolve
+      }),
+    )
+
+    act(() => {
+      result.current.setNetwork('mainnet')
+    })
+
+    // Cleared immediately, before the new network's fetch resolves - no
+    // flash of the previous network's balances under the new label.
+    expect(result.current.wallet.network).toBe('mainnet')
+    expect(result.current.wallet.account).toBeNull()
+    expect(apiMocks.fetchAccountFromHorizon).toHaveBeenCalledWith(PUBLIC_KEY_A, 'mainnet')
+
+    await act(async () => {
+      resolveFetch(mockAccount(PUBLIC_KEY_A))
+    })
+    await waitFor(() => expect(result.current.wallet.account).not.toBeNull())
+  })
+})
