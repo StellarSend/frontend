@@ -18,6 +18,13 @@ import type { Network, WalletState, AccountInfo } from '@/types'
 import { DEFAULT_SETTINGS } from '@/types'
 import { fetchAccountFromHorizon } from '@/lib/api'
 
+// Freighter's own popup lets the user switch accounts entirely outside this
+// app. Poll for that drift on an interval distinct from (and shorter than)
+// the account/balance refresh interval below, which is configurable by the
+// user and defaults to 30s - too slow to catch a mid-session account switch
+// before a stale publicKey gets used to build/sign a transaction.
+export const WALLET_POLL_INTERVAL_MS = 3_000
+
 // ─── State & Actions ─────────────────────────────────────────────────────────
 
 type WalletAction =
@@ -155,6 +162,31 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current)
     }
   }, [wallet.status, refreshAccount])
+
+  // Freighter exposes no account/network-change event (see WALLET_POLL_INTERVAL_MS
+  // above), so reconcile by polling getPublicKey() while connected. A mismatch means
+  // the user switched accounts inside Freighter's own UI; force a reconnect rather
+  // than continuing to sign with the stale key.
+  useEffect(() => {
+    if (wallet.status !== 'connected') return
+
+    const checkForAccountChange = async () => {
+      try {
+        const currentKey = await getPublicKey()
+        if (currentKey && publicKeyRef.current && currentKey !== publicKeyRef.current) {
+          dispatch({
+            type: 'WALLET_CHANGED',
+            error: 'Freighter account changed. Please reconnect to continue.',
+          })
+        }
+      } catch {
+        // Freighter may be locked or briefly unreachable; ignore transient failures.
+      }
+    }
+
+    const pollTimer = setInterval(checkForAccountChange, WALLET_POLL_INTERVAL_MS)
+    return () => clearInterval(pollTimer)
+  }, [wallet.status])
 
   const connect = useCallback(async () => {
     dispatch({ type: 'SET_CONNECTING' })
