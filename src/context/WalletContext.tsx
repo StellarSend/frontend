@@ -18,6 +18,13 @@ import type { Network, WalletState, AccountInfo } from '@/types'
 import { DEFAULT_SETTINGS } from '@/types'
 import { fetchAccountFromHorizon } from '@/lib/api'
 
+// Freighter's own popup lets the user switch accounts entirely outside this
+// app. Poll for that drift on an interval distinct from (and shorter than)
+// the account/balance refresh interval below, which is configurable by the
+// user and defaults to 30s - too slow to catch a mid-session account switch
+// before a stale publicKey gets used to build/sign a transaction.
+export const WALLET_POLL_INTERVAL_MS = 3_000
+
 // ─── State & Actions ─────────────────────────────────────────────────────────
 
 type WalletAction =
@@ -25,9 +32,10 @@ type WalletAction =
   | { type: 'SET_CONNECTED'; publicKey: string }
   | { type: 'SET_DISCONNECTED' }
   | { type: 'SET_ERROR'; error: string }
-  | { type: 'SET_ACCOUNT'; account: AccountInfo }
+  | { type: 'SET_ACCOUNT'; account: AccountInfo | null }
   | { type: 'SET_FREIGHTER_INSTALLED'; installed: boolean }
   | { type: 'SET_NETWORK'; network: Network }
+  | { type: 'WALLET_CHANGED'; error: string }
 
 function walletReducer(state: WalletState, action: WalletAction): WalletState {
   switch (action.type) {
@@ -45,6 +53,17 @@ function walletReducer(state: WalletState, action: WalletAction): WalletState {
       return { ...state, isFreighterInstalled: action.installed }
     case 'SET_NETWORK':
       return { ...state, network: action.network }
+    case 'WALLET_CHANGED':
+      // Freighter's active account changed underneath us - the publicKey
+      // we've been holding is stale, so clear it rather than risk building
+      // or signing a transaction against the wrong account.
+      return {
+        ...state,
+        status: 'error',
+        publicKey: null,
+        account: null,
+        error: action.error,
+      }
     default:
       return state
   }
@@ -77,6 +96,14 @@ const WalletContext = createContext<WalletContextValue | null>(null)
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [wallet, dispatch] = useReducer(walletReducer, initialState)
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Mirrors wallet.publicKey for use inside setInterval callbacks below,
+  // which close over stale state if they read `wallet` directly instead of
+  // a ref kept current via this effect.
+  const publicKeyRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    publicKeyRef.current = wallet.publicKey
+  }, [wallet.publicKey])
 
   // Load persisted network preference
   useEffect(() => {
@@ -134,7 +161,36 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current)
     }
-  }, [wallet.status, refreshAccount])
+    // wallet.network is included explicitly (not just implied via
+    // refreshAccount's own identity change) so a network switch while
+    // connected always triggers an immediate refetch on this exact line,
+    // not just as a side effect of how refreshAccount happens to memoize.
+  }, [wallet.status, wallet.network, refreshAccount])
+
+  // Freighter exposes no account/network-change event (see WALLET_POLL_INTERVAL_MS
+  // above), so reconcile by polling getPublicKey() while connected. A mismatch means
+  // the user switched accounts inside Freighter's own UI; force a reconnect rather
+  // than continuing to sign with the stale key.
+  useEffect(() => {
+    if (wallet.status !== 'connected') return
+
+    const checkForAccountChange = async () => {
+      try {
+        const currentKey = await getPublicKey()
+        if (currentKey && publicKeyRef.current && currentKey !== publicKeyRef.current) {
+          dispatch({
+            type: 'WALLET_CHANGED',
+            error: 'Freighter account changed. Please reconnect to continue.',
+          })
+        }
+      } catch {
+        // Freighter may be locked or briefly unreachable; ignore transient failures.
+      }
+    }
+
+    const pollTimer = setInterval(checkForAccountChange, WALLET_POLL_INTERVAL_MS)
+    return () => clearInterval(pollTimer)
+  }, [wallet.status])
 
   const connect = useCallback(async () => {
     dispatch({ type: 'SET_CONNECTING' })
@@ -175,6 +231,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   const setNetwork = useCallback((network: Network) => {
     dispatch({ type: 'SET_NETWORK', network })
+    // Clear the stale account synchronously so the UI never shows the
+    // previous network's balances under the new network's label, even for
+    // one render - the refresh-account effect above (keyed on wallet.network)
+    // will refetch fresh data for the new network right after.
+    dispatch({ type: 'SET_ACCOUNT', account: null })
     localStorage.setItem('stellarsend_network', network)
   }, [])
 
