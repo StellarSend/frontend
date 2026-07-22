@@ -59,3 +59,21 @@ beforeEach(() => {
   vi.clearAllMocks()
   apiMocks.fetchAccountFromHorizon.mockResolvedValue(mockAccount(PUBLIC_KEY_A))
 })
+
+describe('WalletProvider connect/disconnect', () => {
+  it('connect() transitions to connected with the Freighter public key', async () => {
+    const { result } = await connectWallet(PUBLIC_KEY_A)
+    expect(result.current.wallet.status).toBe('connected')
+    expect(result.current.wallet.publicKey).toBe(PUBLIC_KEY_A)
+  })
+
+  it('disconnect() clears publicKey and account', async () => {
+    const { result } = await connectWallet(PUBLIC_KEY_A)
+    act(() => {
+      result.current.disconnect()
+    })
+    expect(result.current.wallet.status).toBe('disconnected')
+    expect(result.current.wallet.publicKey).toBeNull()
+    expect(result.current.wallet.account).toBeNull()
+  })
+})
