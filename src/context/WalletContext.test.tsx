@@ -108,3 +108,50 @@ describe('setNetwork', () => {
     await waitFor(() => expect(result.current.wallet.account).not.toBeNull())
   })
 })
+
+// Uses real timers rather than vi.useFakeTimers(): advancing a faked clock
+// deadlocked React's own effect scheduling in this setup, whereas the actual
+// WALLET_POLL_INTERVAL_MS (3s) is short enough to just wait out for real.
+describe('Freighter account-drift polling', () => {
+  it('transitions to a "please reconnect" state when Freighter reports a different public key', async () => {
+    const { result } = await connectWallet(PUBLIC_KEY_A)
+    expect(result.current.wallet.status).toBe('connected')
+
+    freighterMocks.getPublicKey.mockResolvedValue(PUBLIC_KEY_B)
+
+    await waitFor(
+      () => expect(result.current.wallet.status).toBe('error'),
+      { timeout: WALLET_POLL_INTERVAL_MS + 2_000, interval: 200 },
+    )
+
+    expect(result.current.wallet.publicKey).toBeNull()
+    expect(result.current.wallet.account).toBeNull()
+    expect(result.current.wallet.error).toMatch(/reconnect/i)
+  }, WALLET_POLL_INTERVAL_MS + 5_000)
+
+  it('does not change state while Freighter keeps reporting the same public key', async () => {
+    const { result } = await connectWallet(PUBLIC_KEY_A)
+    expect(result.current.wallet.status).toBe('connected')
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, WALLET_POLL_INTERVAL_MS + 500))
+    })
+
+    expect(result.current.wallet.status).toBe('connected')
+    expect(result.current.wallet.publicKey).toBe(PUBLIC_KEY_A)
+  }, WALLET_POLL_INTERVAL_MS + 5_000)
+
+  it('ignores transient Freighter errors instead of disconnecting', async () => {
+    const { result } = await connectWallet(PUBLIC_KEY_A)
+    expect(result.current.wallet.status).toBe('connected')
+
+    freighterMocks.getPublicKey.mockRejectedValueOnce(new Error('Freighter is locked'))
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, WALLET_POLL_INTERVAL_MS + 500))
+    })
+
+    expect(result.current.wallet.status).toBe('connected')
+    expect(result.current.wallet.publicKey).toBe(PUBLIC_KEY_A)
+  }, WALLET_POLL_INTERVAL_MS + 5_000)
+})
