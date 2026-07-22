@@ -227,6 +227,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   const setNetwork = useCallback((network: Network) => {
     dispatch({ type: 'SET_NETWORK', network })
+    // Clear the stale account synchronously so the UI never shows the
+    // previous network's balances under the new network's label, even for
+    // one render - the refresh-account effect above (keyed on wallet.network)
+    // will refetch fresh data for the new network right after.
+    dispatch({ type: 'SET_ACCOUNT', account: null })
     localStorage.setItem('stellarsend_network', network)
   }, [])
 
