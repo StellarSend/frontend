@@ -3,21 +3,22 @@ import { useCallback, useState } from 'react'
 import { escrowApi } from '@/lib/api'
 import { useWallet } from './useWallet'
 import { useSupportedAssets } from './useSendPayment'
-import type { CreateEscrowRequest, Escrow, EscrowFormValues } from '@/types'
+import type { CreateEscrowRequest, Escrow, EscrowFormValues, Network } from '@/types'
 
 export const escrowKeys = {
   all: ['escrows'] as const,
-  list: (pubKey: string) => [...escrowKeys.all, 'list', pubKey] as const,
+  list: (pubKey: string, network?: Network) => [...escrowKeys.all, 'list', pubKey, network] as const,
+  detail: (id: string, network?: Network) => [...escrowKeys.all, 'detail', id, network] as const,
 }
 
 // ─── List escrows the wallet is party to (as depositor/beneficiary/arbiter) ──
 
 export function useEscrowList() {
-  const { publicKey, isConnected } = useWallet()
+  const { publicKey, network, isConnected } = useWallet()
 
   return useQuery<Escrow[], Error>({
-    queryKey: escrowKeys.list(publicKey ?? ''),
-    queryFn: () => escrowApi.list(publicKey!),
+    queryKey: escrowKeys.list(publicKey ?? '', network),
+    queryFn: () => escrowApi.list(publicKey!, network),
     enabled: isConnected && !!publicKey,
     staleTime: 20_000,
   })
@@ -35,7 +36,7 @@ interface CreateEscrowState {
 }
 
 export function useCreateEscrow() {
-  const { publicKey, signTransaction, isConnected } = useWallet()
+  const { publicKey, network, signTransaction, isConnected } = useWallet()
   const queryClient = useQueryClient()
   const supportedAssets = useSupportedAssets()
 
@@ -62,6 +63,7 @@ export function useCreateEscrow() {
         assetIssuer: asset.issuer,
         amount: values.amount,
         unlockTime: new Date(values.unlockDate).toISOString(),
+        network,
       }
 
       setState((s) => ({ ...s, step: 'signing' }))
@@ -122,14 +124,14 @@ export function useCreateEscrow() {
 // ─── Release / refund actions ─────────────────────────────────────────────────
 
 export function useReleaseEscrow() {
-  const { signTransaction } = useWallet()
+  const { network, signTransaction } = useWallet()
   const queryClient = useQueryClient()
 
   return useMutation<Escrow, Error, string>({
     mutationFn: async (escrowId: string) => {
-      const built = await escrowApi.buildReleaseTransaction(escrowId)
+      const built = await escrowApi.buildReleaseTransaction(escrowId, network)
       const signedXdr = await signTransaction(built.xdr)
-      return escrowApi.release(escrowId, signedXdr)
+      return escrowApi.release(escrowId, signedXdr, network)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: escrowKeys.all })
@@ -138,14 +140,14 @@ export function useReleaseEscrow() {
 }
 
 export function useRefundEscrow() {
-  const { signTransaction } = useWallet()
+  const { network, signTransaction } = useWallet()
   const queryClient = useQueryClient()
 
   return useMutation<Escrow, Error, string>({
     mutationFn: async (escrowId: string) => {
-      const built = await escrowApi.buildRefundTransaction(escrowId)
+      const built = await escrowApi.buildRefundTransaction(escrowId, network)
       const signedXdr = await signTransaction(built.xdr)
-      return escrowApi.refund(escrowId, signedXdr)
+      return escrowApi.refund(escrowId, signedXdr, network)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: escrowKeys.all })

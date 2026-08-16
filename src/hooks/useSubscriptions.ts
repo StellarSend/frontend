@@ -4,23 +4,24 @@ import { subscriptionApi } from '@/lib/api'
 import { buildPaymentTransaction } from '@/lib/stellar'
 import { useWallet } from './useWallet'
 import { useSupportedAssets } from './useSendPayment'
-import type { Subscription, SubscriptionFormValues, CreateSubscriptionRequest } from '@/types'
+import type { Subscription, SubscriptionFormValues, CreateSubscriptionRequest, Network } from '@/types'
 
 // ─── Query keys ───────────────────────────────────────────────────────────────
 
 export const subscriptionKeys = {
   all: ['subscriptions'] as const,
-  list: (pubKey: string) => [...subscriptionKeys.all, 'list', pubKey] as const,
+  list: (pubKey: string, network?: Network) => [...subscriptionKeys.all, 'list', pubKey, network] as const,
+  detail: (id: string, network?: Network) => [...subscriptionKeys.all, 'detail', id, network] as const,
 }
 
 // ─── List ─────────────────────────────────────────────────────────────────────
 
 export function useSubscriptionList() {
-  const { publicKey, isConnected } = useWallet()
+  const { publicKey, network, isConnected } = useWallet()
 
   return useQuery<Subscription[], Error>({
-    queryKey: subscriptionKeys.list(publicKey ?? ''),
-    queryFn: () => subscriptionApi.list(publicKey!),
+    queryKey: subscriptionKeys.list(publicKey ?? '', network),
+    queryFn: () => subscriptionApi.list(publicKey!, network),
     enabled: isConnected && !!publicKey,
     staleTime: 30_000,
   })
@@ -72,6 +73,7 @@ export function useCreateSubscription() {
         interval: values.interval,
         startDate: values.startDate,
         memo: values.memo || undefined,
+        network,
       }
 
       setState((s) => ({ ...s, step: 'signing' }))
@@ -149,7 +151,7 @@ export function useCreateSubscription() {
 // ─── Cancel ───────────────────────────────────────────────────────────────────
 
 export function useCancelSubscription() {
-  const { signTransaction } = useWallet()
+  const { network, signTransaction } = useWallet()
   const queryClient = useQueryClient()
 
   return useMutation<Subscription, Error, string>({
@@ -160,14 +162,14 @@ export function useCancelSubscription() {
       // backend says none is needed.
       let signedXdr: string | undefined
       try {
-        const built = await subscriptionApi.buildCancelTransaction(subscriptionId)
+        const built = await subscriptionApi.buildCancelTransaction(subscriptionId, network)
         if (built?.xdr) {
           signedXdr = await signTransaction(built.xdr)
         }
       } catch {
         signedXdr = undefined
       }
-      return subscriptionApi.cancel(subscriptionId, signedXdr)
+      return subscriptionApi.cancel(subscriptionId, signedXdr, network)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: subscriptionKeys.all })
