@@ -23,7 +23,7 @@ interface BatchPaymentState {
 }
 
 export function useBatchPayment() {
-  const { publicKey, network, signTransaction, isConnected } = useWallet()
+  const { publicKey, network, signTransaction, isConnected, refreshAccount } = useWallet()
   const queryClient = useQueryClient()
   const invalidateTxs = useInvalidateTransactions()
   const supportedAssets = useSupportedAssets()
@@ -84,7 +84,7 @@ export function useBatchPayment() {
     onSuccess: (result) => {
       setState((s) => ({ ...s, step: 'success', result, error: null }))
       invalidateTxs()
-      queryClient.invalidateQueries({ queryKey: ['account'] })
+      refreshAccount()
     },
     onError: (err) => {
       setState((s) => ({

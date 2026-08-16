@@ -45,7 +45,7 @@ export interface SendPaymentState {
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useSendPayment() {
-  const { publicKey, network, signTransaction, isConnected } = useWallet()
+  const { publicKey, network, signTransaction, isConnected, refreshAccount } = useWallet()
   const queryClient = useQueryClient()
   const invalidateTxs = useInvalidateTransactions()
 
@@ -122,7 +122,7 @@ export function useSendPayment() {
     onSuccess: (result) => {
       setState((s) => ({ ...s, step: 'success', result, error: null }))
       invalidateTxs()
-      queryClient.invalidateQueries({ queryKey: ['account'] })
+      refreshAccount()
     },
     onError: (err) => {
       const message =
