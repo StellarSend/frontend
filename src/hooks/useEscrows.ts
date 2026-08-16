@@ -35,7 +35,7 @@ interface CreateEscrowState {
 }
 
 export function useCreateEscrow() {
-  const { publicKey, signTransaction, isConnected } = useWallet()
+  const { publicKey, signTransaction, isConnected, refreshAccount } = useWallet()
   const queryClient = useQueryClient()
   const supportedAssets = useSupportedAssets()
 
@@ -74,6 +74,7 @@ export function useCreateEscrow() {
     onSuccess: (result) => {
       setState((s) => ({ ...s, step: 'success', result, error: null }))
       queryClient.invalidateQueries({ queryKey: escrowKeys.all })
+      refreshAccount()
     },
     onError: (err) => {
       setState((s) => ({
@@ -122,7 +123,7 @@ export function useCreateEscrow() {
 // ─── Release / refund actions ─────────────────────────────────────────────────
 
 export function useReleaseEscrow() {
-  const { signTransaction } = useWallet()
+  const { signTransaction, refreshAccount } = useWallet()
   const queryClient = useQueryClient()
 
   return useMutation<Escrow, Error, string>({
@@ -133,12 +134,13 @@ export function useReleaseEscrow() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: escrowKeys.all })
+      refreshAccount()
     },
   })
 }
 
 export function useRefundEscrow() {
-  const { signTransaction } = useWallet()
+  const { signTransaction, refreshAccount } = useWallet()
   const queryClient = useQueryClient()
 
   return useMutation<Escrow, Error, string>({
@@ -149,6 +151,7 @@ export function useRefundEscrow() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: escrowKeys.all })
+      refreshAccount()
     },
   })
 }

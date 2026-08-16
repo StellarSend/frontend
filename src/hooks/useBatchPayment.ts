@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { batchPaymentApi } from '@/lib/api'
 import { buildBatchPaymentTransaction, submitTransaction } from '@/lib/stellar'
@@ -23,8 +23,7 @@ interface BatchPaymentState {
 }
 
 export function useBatchPayment() {
-  const { publicKey, network, signTransaction, isConnected } = useWallet()
-  const queryClient = useQueryClient()
+  const { publicKey, network, signTransaction, isConnected, refreshAccount } = useWallet()
   const invalidateTxs = useInvalidateTransactions()
   const supportedAssets = useSupportedAssets()
 
@@ -84,7 +83,7 @@ export function useBatchPayment() {
     onSuccess: (result) => {
       setState((s) => ({ ...s, step: 'success', result, error: null }))
       invalidateTxs()
-      queryClient.invalidateQueries({ queryKey: ['account'] })
+      refreshAccount()
     },
     onError: (err) => {
       setState((s) => ({
