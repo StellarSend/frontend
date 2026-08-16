@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState, useCallback } from 'react'
 import { quoteApi, paymentApi } from '@/lib/api'
 import {
@@ -46,7 +46,6 @@ export interface SendPaymentState {
 
 export function useSendPayment() {
   const { publicKey, network, signTransaction, isConnected, refreshAccount } = useWallet()
-  const queryClient = useQueryClient()
   const invalidateTxs = useInvalidateTransactions()
 
   const [state, setState] = useState<SendPaymentState>({
