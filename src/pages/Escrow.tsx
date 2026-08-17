@@ -24,6 +24,7 @@ export default function EscrowPage() {
   const releaseMutation = useReleaseEscrow()
   const refundMutation = useRefundEscrow()
   const { pendingIds: releasingIds, track: trackRelease } = usePendingIds()
+  const { pendingIds: refundingIds, track: trackRefund } = usePendingIds()
 
   if (!isConnected) {
     return (
@@ -91,9 +92,9 @@ export default function EscrowPage() {
             onRetry={() => refetch()}
             currentPublicKey={publicKey}
             onRelease={(id) => trackRelease(id, releaseMutation.mutateAsync(id))}
-            onRefund={(id) => refundMutation.mutate(id)}
+            onRefund={(id) => trackRefund(id, refundMutation.mutateAsync(id))}
             releasingIds={releasingIds}
-            refundingId={refundMutation.isPending ? refundMutation.variables ?? null : null}
+            refundingIds={refundingIds}
           />
         </div>
 
