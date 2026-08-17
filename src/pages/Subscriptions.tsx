@@ -11,6 +11,7 @@ import {
   useSubscriptionList,
   useCancelSubscription,
 } from '@/hooks/useSubscriptions'
+import { usePendingIds } from '@/hooks/usePendingIds'
 import { useWallet } from '@/hooks/useWallet'
 
 export default function Subscriptions() {
@@ -27,6 +28,7 @@ export default function Subscriptions() {
 
   const { data: subscriptions, isLoading, isError, refetch } = useSubscriptionList()
   const cancelMutation = useCancelSubscription()
+  const { pendingIds: cancellingIds, track: trackCancel } = usePendingIds()
 
   if (!isConnected) {
     return (
@@ -93,8 +95,8 @@ export default function Subscriptions() {
             isLoading={isLoading}
             isError={isError}
             onRetry={() => refetch()}
-            onCancel={(id) => cancelMutation.mutate(id)}
-            cancellingId={cancelMutation.isPending ? cancelMutation.variables ?? null : null}
+            onCancel={(id) => trackCancel(id, cancelMutation.mutateAsync(id))}
+            cancellingIds={cancellingIds}
           />
         </div>
 
