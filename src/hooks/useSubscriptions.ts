@@ -45,7 +45,7 @@ interface CreateSubscriptionState {
 }
 
 export function useCreateSubscription() {
-  const { publicKey, network, signTransaction, isConnected } = useWallet()
+  const { publicKey, network, signTransaction, isConnected, refreshAccount } = useWallet()
   const queryClient = useQueryClient()
   const supportedAssets = useSupportedAssets()
 
@@ -103,6 +103,7 @@ export function useCreateSubscription() {
     onSuccess: (result) => {
       setState((s) => ({ ...s, step: 'success', result, error: null }))
       queryClient.invalidateQueries({ queryKey: subscriptionKeys.all })
+      refreshAccount()
     },
     onError: (err) => {
       setState((s) => ({
@@ -151,7 +152,7 @@ export function useCreateSubscription() {
 // ─── Cancel ───────────────────────────────────────────────────────────────────
 
 export function useCancelSubscription() {
-  const { network, signTransaction } = useWallet()
+  const { signTransaction, refreshAccount } = useWallet()
   const queryClient = useQueryClient()
 
   return useMutation<Subscription, Error, string>({
@@ -173,6 +174,7 @@ export function useCancelSubscription() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: subscriptionKeys.all })
+      refreshAccount()
     },
   })
 }
