@@ -14,7 +14,9 @@ interface EscrowListProps {
   currentPublicKey: string | null
   onRelease: (id: string) => void
   onRefund: (id: string) => void
-  releasingId?: string | null
+  // A Set of every currently in-flight id, not a single scalar — two
+  // different escrows can be releasing/refunding at once (#52).
+  releasingIds?: Set<string>
   refundingId?: string | null
 }
 
@@ -26,7 +28,7 @@ export function EscrowList({
   currentPublicKey,
   onRelease,
   onRefund,
-  releasingId,
+  releasingIds,
   refundingId,
 }: EscrowListProps) {
   return (
@@ -63,7 +65,7 @@ export function EscrowList({
               currentPublicKey={currentPublicKey}
               onRelease={onRelease}
               onRefund={onRefund}
-              isReleasing={releasingId === e.id}
+              isReleasing={releasingIds?.has(e.id) ?? false}
               isRefunding={refundingId === e.id}
             />
           ))}
