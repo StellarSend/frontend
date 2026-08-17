@@ -88,12 +88,15 @@ export function BatchForm({
             >
               <div className="flex-1 space-y-2">
                 <Input
+                  aria-label={`Recipient ${index + 1} address`}
                   placeholder="G... recipient address"
                   fullWidth
                   error={errors.recipients?.[index]?.destinationAddress?.message}
                   {...register(`recipients.${index}.destinationAddress` as const)}
                 />
+                
                 <Input
+                  aria-label={`Recipient ${index + 1} amount`}
                   placeholder="Amount"
                   type="number"
                   min="0"

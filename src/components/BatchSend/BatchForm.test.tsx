@@ -54,4 +54,15 @@ describe('BatchForm', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
     expect(onSubmit.mock.calls[0][0].recipients).toHaveLength(2)
   })
+  it('renders accessible names for recipient inputs', () => {
+    render(<BatchForm onSubmit={vi.fn()} supportedAssets={assets} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /add recipient/i }))
+
+    expect(screen.getByRole('textbox', { name: /recipient 1 address/i })).toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: /recipient 1 amount/i })).toBeInTheDocument()
+
+    expect(screen.getByRole('textbox', { name: /recipient 2 address/i })).toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: /recipient 2 amount/i })).toBeInTheDocument()
+  })
 })
