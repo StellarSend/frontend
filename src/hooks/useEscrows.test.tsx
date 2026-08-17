@@ -20,7 +20,7 @@ const walletMocks = vi.hoisted(() => ({
 }))
 vi.mock('./useWallet', () => ({ useWallet: () => walletMocks }))
 
-import { useReleaseEscrow } from './useEscrows'
+import { useReleaseEscrow, useRefundEscrow } from './useEscrows'
 import { usePendingIds } from './usePendingIds'
 
 function deferred<T>() {
@@ -60,11 +60,23 @@ function useReleaseHarness() {
   return { releaseMutation, pendingIds, track }
 }
 
+function useRefundHarness() {
+  const refundMutation = useRefundEscrow()
+  const { pendingIds, track } = usePendingIds()
+  return { refundMutation, pendingIds, track }
+}
+
 beforeEach(() => {
   apiMocks.escrowApi.buildReleaseTransaction.mockReset()
   apiMocks.escrowApi.release.mockReset()
+  apiMocks.escrowApi.buildRefundTransaction.mockReset()
+  apiMocks.escrowApi.refund.mockReset()
   apiMocks.escrowApi.buildReleaseTransaction.mockImplementation(async (id: string) => ({
     xdr: `unsigned-xdr-${id}`,
+    fee: '100',
+  }))
+  apiMocks.escrowApi.buildRefundTransaction.mockImplementation(async (id: string) => ({
+    xdr: `unsigned-refund-xdr-${id}`,
     fee: '100',
   }))
 })
@@ -110,6 +122,45 @@ describe('useReleaseEscrow + usePendingIds: concurrent releases (#52)', () => {
     await act(async () => {
       releaseA.resolve(makeEscrow({ id: 'escrowA', status: 'released' }))
       await releaseA.promise
+    })
+    await waitFor(() => expect(result.current.pendingIds.has('escrowA')).toBe(false))
+  })
+})
+
+describe('useRefundEscrow + usePendingIds: concurrent refunds (#52)', () => {
+  it('refunding a second escrow while the first is still in flight keeps both independently pending', async () => {
+    const refundA = deferred<Escrow>()
+    const refundB = deferred<Escrow>()
+    apiMocks.escrowApi.refund.mockImplementation((id: string) =>
+      id === 'escrowA' ? refundA.promise : refundB.promise,
+    )
+
+    const { result } = renderHook(() => useRefundHarness(), { wrapper })
+
+    act(() => {
+      result.current.track('escrowA', result.current.refundMutation.mutateAsync('escrowA'))
+    })
+    await waitFor(() => expect(result.current.pendingIds.has('escrowA')).toBe(true))
+
+    act(() => {
+      result.current.track('escrowB', result.current.refundMutation.mutateAsync('escrowB'))
+    })
+    await waitFor(() => expect(result.current.pendingIds.has('escrowB')).toBe(true))
+
+    expect(result.current.refundMutation.variables).toBe('escrowB')
+    expect(result.current.pendingIds.has('escrowA')).toBe(true)
+    expect(result.current.pendingIds.has('escrowB')).toBe(true)
+
+    await act(async () => {
+      refundB.resolve(makeEscrow({ id: 'escrowB', status: 'refunded' }))
+      await refundB.promise
+    })
+    await waitFor(() => expect(result.current.pendingIds.has('escrowB')).toBe(false))
+    expect(result.current.pendingIds.has('escrowA')).toBe(true)
+
+    await act(async () => {
+      refundA.resolve(makeEscrow({ id: 'escrowA', status: 'refunded' }))
+      await refundA.promise
     })
     await waitFor(() => expect(result.current.pendingIds.has('escrowA')).toBe(false))
   })
