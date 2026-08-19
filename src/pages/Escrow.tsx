@@ -12,6 +12,7 @@ import {
   useReleaseEscrow,
   useRefundEscrow,
 } from '@/hooks/useEscrows'
+import { usePendingIds } from '@/hooks/usePendingIds'
 import { useWallet } from '@/hooks/useWallet'
 
 export default function EscrowPage() {
@@ -22,6 +23,8 @@ export default function EscrowPage() {
   const { data: escrows, isLoading, isError, refetch } = useEscrowList()
   const releaseMutation = useReleaseEscrow()
   const refundMutation = useRefundEscrow()
+  const { pendingIds: releasingIds, track: trackRelease } = usePendingIds()
+  const { pendingIds: refundingIds, track: trackRefund } = usePendingIds()
 
   if (!isConnected) {
     return (
@@ -88,10 +91,10 @@ export default function EscrowPage() {
             isError={isError}
             onRetry={() => refetch()}
             currentPublicKey={publicKey}
-            onRelease={(id) => releaseMutation.mutate(id)}
-            onRefund={(id) => refundMutation.mutate(id)}
-            releasingId={releaseMutation.isPending ? releaseMutation.variables ?? null : null}
-            refundingId={refundMutation.isPending ? refundMutation.variables ?? null : null}
+            onRelease={(id) => trackRelease(id, releaseMutation.mutateAsync(id))}
+            onRefund={(id) => trackRefund(id, refundMutation.mutateAsync(id))}
+            releasingIds={releasingIds}
+            refundingIds={refundingIds}
           />
         </div>
 

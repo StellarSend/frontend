@@ -270,8 +270,12 @@ export async function buildBatchPaymentTransaction(
   const sourceAccount = await server.loadAccount(sourcePublicKey)
   const stellarAsset = toStellarAsset(asset)
 
+  // `estimateFee` returns a per-operation fee. `TransactionBuilder.build()`
+  // multiplies it by the operation count internally (baseFee x ops.length), so
+  // passing the raw value — like buildPaymentTransaction/buildPathPaymentTransaction
+  // do — yields a total fee that scales linearly with the number of recipients.
   const builder = new TransactionBuilder(sourceAccount, {
-    fee: String(Number(fee) * recipients.length),
+    fee,
     networkPassphrase: passphrase,
   })
 

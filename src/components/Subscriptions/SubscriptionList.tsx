@@ -12,7 +12,9 @@ interface SubscriptionListProps {
   isError: boolean
   onRetry: () => void
   onCancel: (id: string) => void
-  cancellingId?: string | null
+  // A Set of every currently in-flight id, not a single scalar — two
+  // different subscriptions can be cancelling at once (#52).
+  cancellingIds?: Set<string>
 }
 
 export function SubscriptionList({
@@ -21,7 +23,7 @@ export function SubscriptionList({
   isError,
   onRetry,
   onCancel,
-  cancellingId,
+  cancellingIds,
 }: SubscriptionListProps) {
   return (
     <Card>
@@ -53,7 +55,7 @@ export function SubscriptionList({
               key={s.id}
               subscription={s}
               onCancel={onCancel}
-              isCancelling={cancellingId === s.id}
+              isCancelling={cancellingIds?.has(s.id) ?? false}
             />
           ))}
         </div>

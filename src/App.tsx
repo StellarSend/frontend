@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { WalletProvider } from '@/context/WalletContext'
 import { Layout } from '@/components/layout/Layout'
+import { shouldRetryQuery } from '@/lib/queryRetry'
 
 // Pages (lazy-loaded for code-splitting)
 import { lazy, Suspense } from 'react'
@@ -28,11 +29,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 30_000,
       gcTime: 5 * 60_000,
-      retry: (failureCount, error) => {
-        // Don't retry 404s
-        if (error instanceof Error && error.message.includes('not found')) return false
-        return failureCount < 2
-      },
+      retry: shouldRetryQuery,
       refetchOnWindowFocus: true,
     },
     mutations: {

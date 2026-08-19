@@ -25,6 +25,52 @@ import type {
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8080'
 
+// ─── Normalized API errors ────────────────────────────────────────────────────
+
+/**
+ * A real `Error` subclass carrying the same `code`/`details` fields as
+ * `ApiError`, rejected by every request through `apiClient` in place of a
+ * plain `{ code, message, details }` object literal. The plain-object
+ * rejection made `error instanceof Error` — used by the global React Query
+ * retry predicate in `App.tsx` (and assumed by every hook's `useQuery<T,
+ * Error>` type parameter) — always false for backend-routed failures,
+ * silently defeating the "don't retry 404s" check (#60).
+ */
+export class ApiRequestError extends Error implements ApiError {
+  code: string
+  details?: Record<string, string[]>
+
+  constructor(apiError: ApiError) {
+    super(apiError.message)
+    this.name = 'ApiRequestError'
+    this.code = apiError.code
+    this.details = apiError.details
+  }
+}
+
+/**
+ * Turns a rejected axios response into an `ApiRequestError`. Exported
+ * separately from the interceptor so it can be unit-tested directly instead
+ * of relying on axios's internal interceptor-handler storage.
+ *
+ * `code` prefers the backend's own `data.code`; when the backend doesn't
+ * send one, a 404 status is normalized to the stable `'NOT_FOUND'` code
+ * (HTTP status is a reliable, backend-convention-independent signal, unlike
+ * substring-matching `message`) rather than falling through to
+ * `'UNKNOWN_ERROR'`.
+ */
+export function normalizeApiError(error: AxiosError<ApiError>): ApiRequestError {
+  const message =
+    error.response?.data?.message || error.message || 'An unexpected error occurred'
+  const code =
+    error.response?.data?.code || (error.response?.status === 404 ? 'NOT_FOUND' : 'UNKNOWN_ERROR')
+  return new ApiRequestError({
+    code,
+    message,
+    details: error.response?.data?.details,
+  })
+}
+
 // ─── Axios instance ───────────────────────────────────────────────────────────
 
 const createApiClient = (): AxiosInstance => {
@@ -52,18 +98,7 @@ const createApiClient = (): AxiosInstance => {
   // Response interceptor — normalise errors
   client.interceptors.response.use(
     (response) => response,
-    (error: AxiosError<ApiError>) => {
-      const message =
-        error.response?.data?.message ||
-        error.message ||
-        'An unexpected error occurred'
-      const apiError: ApiError = {
-        code: error.response?.data?.code || 'UNKNOWN_ERROR',
-        message,
-        details: error.response?.data?.details,
-      }
-      return Promise.reject(apiError)
-    },
+    (error: AxiosError<ApiError>) => Promise.reject(normalizeApiError(error)),
   )
 
   return client

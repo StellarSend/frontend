@@ -1,12 +1,74 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import {
-  horizonUrl,
-  fetchAccountFromHorizon,
-  escrowApi,
-  subscriptionApi,
-  paymentRequestApi,
-  apiClient,
-} from './api'
+import { AxiosError, AxiosHeaders } from 'axios'
+import { horizonUrl, fetchAccountFromHorizon, normalizeApiError, ApiRequestError } from './api'
+import type { ApiError } from '@/types'
+
+function makeAxiosError(status: number | undefined, data?: ApiError, message = 'Request failed') {
+  return new AxiosError<ApiError>(
+    message,
+    undefined,
+    { headers: new AxiosHeaders() },
+    undefined,
+    status === undefined
+      ? undefined
+      : {
+          status,
+          statusText: '',
+          headers: {},
+          config: { headers: new AxiosHeaders() },
+          data: data as ApiError,
+        },
+  )
+}
+
+describe('normalizeApiError', () => {
+  it('produces a real Error instance, not a plain object (#60)', () => {
+    const result = normalizeApiError(makeAxiosError(404, undefined))
+
+    expect(result).toBeInstanceOf(Error)
+    expect(result).toBeInstanceOf(ApiRequestError)
+  })
+
+  it('carries the backend-provided code, message, and details through unchanged', () => {
+    const result = normalizeApiError(
+      makeAxiosError(400, {
+        code: 'VALIDATION_ERROR',
+        message: 'Amount must be positive',
+        details: { amount: ['must be greater than 0'] },
+      }),
+    )
+
+    expect(result.code).toBe('VALIDATION_ERROR')
+    expect(result.message).toBe('Amount must be positive')
+    expect(result.details).toEqual({ amount: ['must be greater than 0'] })
+  })
+
+  it("derives code 'NOT_FOUND' from a 404 status when the backend sends no code", () => {
+    const result = normalizeApiError(makeAxiosError(404, undefined, 'Request failed with status code 404'))
+
+    expect(result.code).toBe('NOT_FOUND')
+  })
+
+  it('prefers a backend-supplied code over the derived NOT_FOUND for a 404', () => {
+    const result = normalizeApiError(
+      makeAxiosError(404, { code: 'PAYMENT_REQUEST_NOT_FOUND', message: 'Payment request not found' }),
+    )
+
+    expect(result.code).toBe('PAYMENT_REQUEST_NOT_FOUND')
+  })
+
+  it("falls back to 'UNKNOWN_ERROR' for a non-404 failure with no backend code", () => {
+    const result = normalizeApiError(makeAxiosError(500, undefined, 'Request failed with status code 500'))
+
+    expect(result.code).toBe('UNKNOWN_ERROR')
+  })
+
+  it('falls back to a generic message when neither the backend nor axios supplies one', () => {
+    const result = normalizeApiError(makeAxiosError(undefined, undefined, ''))
+
+    expect(result.message).toBe('An unexpected error occurred')
+  })
+})
 
 describe('horizonUrl', () => {
   it('returns the testnet Horizon host for network "testnet"', () => {
