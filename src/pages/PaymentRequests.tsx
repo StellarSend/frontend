@@ -41,6 +41,7 @@ export default function PaymentRequests() {
         assetIssuer: asset.issuer,
         amount: values.amount,
         memo: values.memo || undefined,
+        memoType: values.memoType,
         expiresAt: values.expiresInHours
           ? new Date(Date.now() + parseFloat(values.expiresInHours) * 3_600_000).toISOString()
           : undefined,

@@ -38,7 +38,32 @@ const sendSchema = z.object({
   amountType: z.enum(['send', 'receive']),
   usePathPayment: z.boolean(),
   memo: z.string().max(28, 'Memo must be ≤ 28 characters').optional().default(''),
-})
+  memoType: z.enum(['text', 'id']).default('text'),
+}).refine(
+  (data) => {
+    // If memo type is 'id', validate that memo contains only digits and fits in uint64
+    if (data.memoType === 'id' && data.memo.trim()) {
+      const trimmed = data.memo.trim()
+      if (!/^\d+$/.test(trimmed)) {
+        return false
+      }
+      try {
+        const bigIntValue = BigInt(trimmed)
+        const maxUint64 = BigInt('18446744073709551615')
+        if (bigIntValue > maxUint64) {
+          return false
+        }
+      } catch {
+        return false
+      }
+    }
+    return true
+  },
+  {
+    message: 'Memo ID must be numeric and not exceed 18446744073709551615',
+    path: ['memo'],
+  },
+)
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -73,6 +98,7 @@ export function SendForm({
       amountType: 'send',
       usePathPayment: false,
       memo: '',
+      memoType: 'text',
       ...defaultValues,
     },
   })
@@ -197,14 +223,26 @@ export function SendForm({
         />
 
         {/* Memo (optional) */}
-        <Input
-          label="Memo (optional)"
-          placeholder="Payment reference, ID, or note"
-          hint="Up to 28 characters. Required by some exchanges."
-          error={errors.memo?.message}
-          fullWidth
-          {...register('memo')}
-        />
+        <div className="space-y-3">
+          <Input
+            label="Memo (optional)"
+            placeholder="Payment reference, ID, or note"
+            hint="Up to 28 characters. Required by some exchanges."
+            error={errors.memo?.message}
+            fullWidth
+            {...register('memo')}
+          />
+          <Select
+            label="Memo Type"
+            options={[
+              { value: 'text', label: 'Text' },
+              { value: 'id', label: 'ID' },
+            ]}
+            hint="Text: Any alphanumeric value. ID: Numeric value only."
+            fullWidth
+            {...register('memoType')}
+          />
+        </div>
 
         {/* Path payment info */}
         {usePathPayment && sourceAsset !== destAsset && (

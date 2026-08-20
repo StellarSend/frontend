@@ -91,6 +91,7 @@ export function useSendPayment() {
         formValues.destinationAddress,
         network,
         formValues.memo || undefined,
+        formValues.memoType,
       )
 
       // 2. Sign with Freighter

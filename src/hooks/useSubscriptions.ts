@@ -72,6 +72,7 @@ export function useCreateSubscription() {
         interval: values.interval,
         startDate: values.startDate,
         memo: values.memo || undefined,
+        memoType: values.memoType,
       }
 
       setState((s) => ({ ...s, step: 'signing' }))
@@ -89,6 +90,7 @@ export function useCreateSubscription() {
           asset,
           amount: values.amount,
           memo: values.memo || undefined,
+          memoType: values.memoType,
           network,
         })
       }

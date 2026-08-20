@@ -65,4 +65,57 @@ describe('BatchForm', () => {
     expect(screen.getByRole('textbox', { name: /recipient 2 address/i })).toBeInTheDocument()
     expect(screen.getByRole('spinbutton', { name: /recipient 2 amount/i })).toBeInTheDocument()
   })
+
+  // ─── Memo type tests ──────────────────────────────────────────────────────
+
+  it('has default memo type as text', async () => {
+    const onSubmit = vi.fn()
+    render(<BatchForm onSubmit={onSubmit} supportedAssets={assets} />)
+
+    fireEvent.change(screen.getByPlaceholderText('G... recipient address'), {
+      target: { value: VALID_ADDR },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Amount'), {
+      target: { value: '10' },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /review batch/i })).not.toBeDisabled()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /review batch/i }))
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+    const submittedValues = onSubmit.mock.calls[0][0]
+    expect(submittedValues.recipients[0].memoType).toBe('text')
+  })
+
+  it('accepts numeric memo as id when memo type is id', async () => {
+    const onSubmit = vi.fn()
+    render(<BatchForm onSubmit={onSubmit} supportedAssets={assets} />)
+
+    fireEvent.change(screen.getByPlaceholderText('G... recipient address'), {
+      target: { value: VALID_ADDR },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Amount'), {
+      target: { value: '10' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Memo (optional)'), {
+      target: { value: '4291001' },
+    })
+    fireEvent.change(screen.getByLabelText(/recipient 1 memo type/i), {
+      target: { value: 'id' },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /review batch/i })).not.toBeDisabled()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /review batch/i }))
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+    const submittedValues = onSubmit.mock.calls[0][0]
+    expect(submittedValues.recipients[0].memo).toBe('4291001')
+    expect(submittedValues.recipients[0].memoType).toBe('id')
+  })
 })
