@@ -1,5 +1,5 @@
 import React from 'react'
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { TransactionPage } from '@/types'
@@ -16,7 +16,7 @@ const walletMocks = vi.hoisted(() => ({
 }))
 vi.mock('./useWallet', () => ({ useWallet: () => walletMocks }))
 
-import { txKeys, useRecentTransactions } from './useTransactions'
+import { txKeys, useRecentTransactions, useInvalidateTransactions } from './useTransactions'
 
 function makePage(overrides: Partial<TransactionPage> = {}): TransactionPage {
   return {
@@ -59,6 +59,13 @@ function useHistoryRecentTransactions() {
   const historyChart = useRecentTransactions(100)
   const historySummary = useRecentTransactions(50)
   return { historyChart, historySummary }
+}
+
+function useTwoLimitsPlusInvalidate(limitA: number, limitB: number) {
+  const a = useRecentTransactions(limitA)
+  const b = useRecentTransactions(limitB)
+  const invalidate = useInvalidateTransactions()
+  return { a, b, invalidate }
 }
 
 beforeEach(() => {
@@ -188,5 +195,32 @@ describe('useRecentTransactions', () => {
 
     expect(apiMocks.fetchTransactionsFromHorizon).toHaveBeenCalledTimes(1)
     expect(result.current.a.data).toBe(result.current.b.data)
+  })
+
+  // useInvalidateTransactions invalidates via the broad txKeys.all prefix,
+  // not a specific list()/limit key. Now that list() includes limit in its
+  // key, this confirms invalidation still reaches every limit variant
+  // instead of accidentally scoping to just one.
+  it('useInvalidateTransactions still invalidates every distinct-limit query under one wallet', async () => {
+    apiMocks.fetchTransactionsFromHorizon.mockResolvedValue(makePage())
+
+    const { result } = renderHook(() => useTwoLimitsPlusInvalidate(5, 50), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current.a.isSuccess).toBe(true)
+      expect(result.current.b.isSuccess).toBe(true)
+    })
+    expect(apiMocks.fetchTransactionsFromHorizon).toHaveBeenCalledTimes(2)
+
+    await act(async () => {
+      result.current.invalidate()
+    })
+
+    await waitFor(() => {
+      // Both the limit=5 and limit=50 queries refetched — one additional
+      // call each, four total — proving the broader txKeys.all invalidation
+      // still reaches both now-more-specific list() keys.
+      expect(apiMocks.fetchTransactionsFromHorizon).toHaveBeenCalledTimes(4)
+    })
   })
 })
