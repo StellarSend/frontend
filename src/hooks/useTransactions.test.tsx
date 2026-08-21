@@ -175,4 +175,18 @@ describe('useRecentTransactions', () => {
     expect(result.current.historyChart.data?.transactions).toHaveLength(100)
     expect(result.current.historySummary.data?.transactions).toHaveLength(50)
   })
+
+  it('two callers with the identical limit for the same wallet still share one fetch', async () => {
+    apiMocks.fetchTransactionsFromHorizon.mockResolvedValue(makePage({ pageSize: 50 }))
+
+    const { result } = renderHook(() => useTwoRecentTransactions(50, 50), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current.a.isSuccess).toBe(true)
+      expect(result.current.b.isSuccess).toBe(true)
+    })
+
+    expect(apiMocks.fetchTransactionsFromHorizon).toHaveBeenCalledTimes(1)
+    expect(result.current.a.data).toBe(result.current.b.data)
+  })
 })
