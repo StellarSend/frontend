@@ -2,7 +2,7 @@ import React from 'react'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { TransactionPage } from '@/types'
+import type { Transaction, TransactionPage } from '@/types'
 
 const apiMocks = vi.hoisted(() => ({
   fetchTransactionsFromHorizon: vi.fn(),
@@ -17,6 +17,29 @@ const walletMocks = vi.hoisted(() => ({
 vi.mock('./useWallet', () => ({ useWallet: () => walletMocks }))
 
 import { txKeys, useRecentTransactions, useInvalidateTransactions } from './useTransactions'
+
+function makeTransaction(id: string): Transaction {
+  return {
+    id,
+    hash: id,
+    createdAt: new Date().toISOString(),
+    type: 'payment',
+    status: 'success',
+    sourceAccount: 'GSOURCE',
+    destinationAccount: 'GDEST',
+    amount: '10',
+    assetCode: 'XLM',
+    assetIssuer: null,
+    fee: '0.00001',
+    ledger: 1,
+    direction: 'received',
+    counterparty: 'GSOURCE',
+  }
+}
+
+function makeTransactions(limit: number): Transaction[] {
+  return Array.from({ length: limit }, (_, i) => makeTransaction(`tx${i}`))
+}
 
 function makePage(overrides: Partial<TransactionPage> = {}): TransactionPage {
   return {
@@ -102,7 +125,7 @@ describe('useRecentTransactions', () => {
   it('two callers with different limits for the same wallet each fetch and receive their own limit-sized dataset', async () => {
     apiMocks.fetchTransactionsFromHorizon.mockImplementation(
       async (_pubKey: string, _network: string, limit: number) =>
-        makePage({ transactions: Array(limit).fill(null).map((_, i) => ({ id: `tx${i}` })) , pageSize: limit }),
+        makePage({ transactions: makeTransactions(limit), pageSize: limit }),
     )
 
     const { result } = renderHook(() => useTwoRecentTransactions(5, 50), { wrapper })
@@ -139,7 +162,7 @@ describe('useRecentTransactions', () => {
   it("Dashboard's three simultaneous callers (5, 50, 50) produce exactly two fetches, and both limit=50 callers share one result", async () => {
     apiMocks.fetchTransactionsFromHorizon.mockImplementation(
       async (_pubKey: string, _network: string, limit: number) =>
-        makePage({ transactions: Array(limit).fill(null).map((_, i) => ({ id: `tx${i}` })), pageSize: limit }),
+        makePage({ transactions: makeTransactions(limit), pageSize: limit }),
     )
 
     const { result } = renderHook(() => useDashboardRecentTransactions(), { wrapper })
@@ -168,7 +191,7 @@ describe('useRecentTransactions', () => {
   it("History's two simultaneous callers (100, 50) each fetch and receive their own limit-sized dataset", async () => {
     apiMocks.fetchTransactionsFromHorizon.mockImplementation(
       async (_pubKey: string, _network: string, limit: number) =>
-        makePage({ transactions: Array(limit).fill(null).map((_, i) => ({ id: `tx${i}` })), pageSize: limit }),
+        makePage({ transactions: makeTransactions(limit), pageSize: limit }),
     )
 
     const { result } = renderHook(() => useHistoryRecentTransactions(), { wrapper })
