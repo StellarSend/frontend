@@ -68,3 +68,42 @@ describe('txKeys.list', () => {
     expect(key5).not.toEqual(key50)
   })
 })
+
+describe('useRecentTransactions', () => {
+  // Regression test for #51: mirrors Dashboard.tsx, where RecentTransactions
+  // calls useRecentTransactions(5) and QuickStats/ActivityChart call
+  // useRecentTransactions(50) for the same connected wallet at the same
+  // time. Before the fix, both resolved to one shared cache entry — whoever
+  // fetched first "won" and every subscriber received that dataset size
+  // regardless of the limit it actually asked for.
+  it('two callers with different limits for the same wallet each fetch and receive their own limit-sized dataset', async () => {
+    apiMocks.fetchTransactionsFromHorizon.mockImplementation(
+      async (_pubKey: string, _network: string, limit: number) =>
+        makePage({ transactions: Array(limit).fill(null).map((_, i) => ({ id: `tx${i}` })) , pageSize: limit }),
+    )
+
+    const { result } = renderHook(() => useTwoRecentTransactions(5, 50), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current.a.isSuccess).toBe(true)
+      expect(result.current.b.isSuccess).toBe(true)
+    })
+
+    // Each call site independently invoked the fetcher with its own limit...
+    expect(apiMocks.fetchTransactionsFromHorizon).toHaveBeenCalledWith(
+      walletMocks.publicKey,
+      walletMocks.network,
+      5,
+    )
+    expect(apiMocks.fetchTransactionsFromHorizon).toHaveBeenCalledWith(
+      walletMocks.publicKey,
+      walletMocks.network,
+      50,
+    )
+
+    // ...and each received the dataset sized for the limit it asked for,
+    // not whichever one happened to resolve first for a shared cache slot.
+    expect(result.current.a.data?.transactions).toHaveLength(5)
+    expect(result.current.b.data?.transactions).toHaveLength(50)
+  })
+})
