@@ -54,6 +54,13 @@ function useDashboardRecentTransactions() {
   return { recentTransactions, quickStats, activityChart }
 }
 
+// Mirrors History.tsx exactly: HistoryChart(100), HistorySummary(50).
+function useHistoryRecentTransactions() {
+  const historyChart = useRecentTransactions(100)
+  const historySummary = useRecentTransactions(50)
+  return { historyChart, historySummary }
+}
+
 beforeEach(() => {
   apiMocks.fetchTransactionsFromHorizon.mockReset()
   walletMocks.publicKey = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'
@@ -146,5 +153,26 @@ describe('useRecentTransactions', () => {
     // QuickStats and ActivityChart share the exact same underlying data
     // reference — same query, same cache entry, as intended for equal limits.
     expect(result.current.quickStats.data).toBe(result.current.activityChart.data)
+  })
+
+  // History.tsx's independent collision: HistoryChart(100) and
+  // HistorySummary(50). A separate page from Dashboard, but the same class
+  // of bug — worth its own explicit coverage per the issue.
+  it("History's two simultaneous callers (100, 50) each fetch and receive their own limit-sized dataset", async () => {
+    apiMocks.fetchTransactionsFromHorizon.mockImplementation(
+      async (_pubKey: string, _network: string, limit: number) =>
+        makePage({ transactions: Array(limit).fill(null).map((_, i) => ({ id: `tx${i}` })), pageSize: limit }),
+    )
+
+    const { result } = renderHook(() => useHistoryRecentTransactions(), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current.historyChart.isSuccess).toBe(true)
+      expect(result.current.historySummary.isSuccess).toBe(true)
+    })
+
+    expect(apiMocks.fetchTransactionsFromHorizon).toHaveBeenCalledTimes(2)
+    expect(result.current.historyChart.data?.transactions).toHaveLength(100)
+    expect(result.current.historySummary.data?.transactions).toHaveLength(50)
   })
 })
