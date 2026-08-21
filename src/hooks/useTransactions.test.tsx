@@ -45,6 +45,15 @@ function useTwoRecentTransactions(limitA: number, limitB: number) {
   return { a, b }
 }
 
+// Mirrors Dashboard.tsx exactly: RecentTransactions(5), QuickStats(50),
+// ActivityChart(50) all mounted together for the same wallet.
+function useDashboardRecentTransactions() {
+  const recentTransactions = useRecentTransactions(5)
+  const quickStats = useRecentTransactions(50)
+  const activityChart = useRecentTransactions(50)
+  return { recentTransactions, quickStats, activityChart }
+}
+
 beforeEach(() => {
   apiMocks.fetchTransactionsFromHorizon.mockReset()
   walletMocks.publicKey = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'
@@ -105,5 +114,37 @@ describe('useRecentTransactions', () => {
     // not whichever one happened to resolve first for a shared cache slot.
     expect(result.current.a.data?.transactions).toHaveLength(5)
     expect(result.current.b.data?.transactions).toHaveLength(50)
+  })
+
+  // Dashboard.tsx's exact three call sites: RecentTransactions(5),
+  // QuickStats(50), ActivityChart(50). The two limit=50 callers should
+  // still correctly dedupe to a single shared fetch (same wallet, same
+  // limit really is the same query) — only the limit=5 caller needs its
+  // own. Before the fix all three collapsed into one shared query
+  // regardless of limit; the fix must not overcorrect into never sharing.
+  it("Dashboard's three simultaneous callers (5, 50, 50) produce exactly two fetches, and both limit=50 callers share one result", async () => {
+    apiMocks.fetchTransactionsFromHorizon.mockImplementation(
+      async (_pubKey: string, _network: string, limit: number) =>
+        makePage({ transactions: Array(limit).fill(null).map((_, i) => ({ id: `tx${i}` })), pageSize: limit }),
+    )
+
+    const { result } = renderHook(() => useDashboardRecentTransactions(), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current.recentTransactions.isSuccess).toBe(true)
+      expect(result.current.quickStats.isSuccess).toBe(true)
+      expect(result.current.activityChart.isSuccess).toBe(true)
+    })
+
+    // Two distinct limits -> two fetches, not three (the shared limit=50
+    // pair dedupes) and not one (limit=5 doesn't collide with them).
+    expect(apiMocks.fetchTransactionsFromHorizon).toHaveBeenCalledTimes(2)
+
+    expect(result.current.recentTransactions.data?.transactions).toHaveLength(5)
+    expect(result.current.quickStats.data?.transactions).toHaveLength(50)
+    expect(result.current.activityChart.data?.transactions).toHaveLength(50)
+    // QuickStats and ActivityChart share the exact same underlying data
+    // reference — same query, same cache entry, as intended for equal limits.
+    expect(result.current.quickStats.data).toBe(result.current.activityChart.data)
   })
 })
