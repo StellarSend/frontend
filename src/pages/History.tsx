@@ -104,7 +104,11 @@ function HistorySummary() {
 
   const totalSent = txs.filter((t) => t.direction === 'sent').reduce((s, t) => s + parseFloat(t.amount || '0'), 0)
   const totalReceived = txs.filter((t) => t.direction === 'received').reduce((s, t) => s + parseFloat(t.amount || '0'), 0)
-  const totalFees = txs.reduce((s, t) => s + parseFloat(t.fee || '0') / 10_000_000, 0)
+  // Fees are paid only by the source account, so received transactions must
+  // not contribute to this wallet's fee total.
+  const totalFees = txs
+    .filter((t) => t.direction === 'sent')
+    .reduce((s, t) => s + parseFloat(t.fee || '0') / 10_000_000, 0)
   const successRate = txs.length
     ? Math.round((txs.filter((t) => t.status === 'success').length / txs.length) * 100)
     : 100

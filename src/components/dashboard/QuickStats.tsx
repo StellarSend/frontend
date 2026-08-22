@@ -20,10 +20,12 @@ export function QuickStats() {
     .reduce((sum, t) => sum + parseFloat(t.amount || '0'), 0)
     .toFixed(4)
 
-  const avgFee = transactions.length
+  // Horizon reports a transaction fee for its source account. Received
+  // transfers therefore contain the sender's fee, not this wallet's cost.
+  const avgFee = sent.length
     ? (
-        transactions.reduce((s, t) => s + parseFloat(t.fee || '0'), 0) /
-        transactions.length /
+        sent.reduce((s, t) => s + parseFloat(t.fee || '0'), 0) /
+        sent.length /
         10_000_000
       ).toFixed(7)
     : '0'
