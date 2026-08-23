@@ -11,6 +11,9 @@
   mapping (#21)
 
 ### Fixed
+- Escrow, Subscription, and Payment Request hooks, React Query keys, and API
+  calls now thread the active `network` parameter through, preventing
+  cross-network cache collisions and backend ambiguity on network switches (#59)
 - EscrowForm now rejects self-escrow (beneficiary === depositor) and
   arbiter addresses that match the depositor or beneficiary (#23)
 - `useTheme` now subscribes to live OS theme changes when set to

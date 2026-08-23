@@ -178,3 +178,54 @@ describe('fetchAccountFromHorizon', () => {
     expect(account.balances[1].asset.issuer).toBe('GISSUER')
   })
 })
+
+describe('network-aware API endpoints', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('escrowApi.list includes network in params when provided', async () => {
+    const spy = vi.spyOn(apiClient, 'request').mockResolvedValue({ data: [] })
+    await escrowApi.list(PUBLIC_KEY, 'testnet')
+
+    expect(spy).toHaveBeenCalledWith({
+      method: 'GET',
+      url: '/api/escrows',
+      params: { publicKey: PUBLIC_KEY, network: 'testnet' },
+    })
+  })
+
+  it('subscriptionApi.list includes network in params when provided', async () => {
+    const spy = vi.spyOn(apiClient, 'request').mockResolvedValue({ data: [] })
+    await subscriptionApi.list(PUBLIC_KEY, 'mainnet')
+
+    expect(spy).toHaveBeenCalledWith({
+      method: 'GET',
+      url: '/api/subscriptions',
+      params: { publicKey: PUBLIC_KEY, network: 'mainnet' },
+    })
+  })
+
+  it('paymentRequestApi.list includes network in params when provided', async () => {
+    const spy = vi.spyOn(apiClient, 'request').mockResolvedValue({ data: [] })
+    await paymentRequestApi.list(PUBLIC_KEY, 'testnet')
+
+    expect(spy).toHaveBeenCalledWith({
+      method: 'GET',
+      url: '/api/payment-requests',
+      params: { publicKey: PUBLIC_KEY, network: 'testnet' },
+    })
+  })
+
+  it('paymentRequestApi.get includes network in params when provided', async () => {
+    const spy = vi.spyOn(apiClient, 'request').mockResolvedValue({ data: { id: 'req-1' } })
+    await paymentRequestApi.get('req-1', 'mainnet')
+
+    expect(spy).toHaveBeenCalledWith({
+      method: 'GET',
+      url: '/api/payment-requests/req-1',
+      params: { network: 'mainnet' },
+    })
+  })
+})
+

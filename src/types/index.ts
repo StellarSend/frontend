@@ -288,6 +288,7 @@ export interface CreateSubscriptionRequest {
   interval: SubscriptionInterval
   startDate: string
   memo?: string
+  network?: Network
 }
 
 export interface SubscriptionFormValues {
@@ -353,6 +354,7 @@ export interface CreatePaymentRequestPayload {
   amount: string
   memo?: string
   expiresAt?: string
+  network?: Network
 }
 
 export interface PaymentRequestFormValues {
@@ -392,6 +394,7 @@ export interface CreateEscrowRequest {
   assetIssuer: string | null
   amount: string
   unlockTime: string
+  network?: Network
 }
 
 export interface EscrowFormValues {

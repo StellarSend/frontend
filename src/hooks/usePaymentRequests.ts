@@ -1,22 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { paymentRequestApi } from '@/lib/api'
 import { useWallet } from './useWallet'
-import type { CreatePaymentRequestPayload, PaymentRequest } from '@/types'
+import type { CreatePaymentRequestPayload, PaymentRequest, Network } from '@/types'
 
 export const paymentRequestKeys = {
   all: ['payment-requests'] as const,
-  list: (pubKey: string) => [...paymentRequestKeys.all, 'list', pubKey] as const,
-  detail: (id: string) => [...paymentRequestKeys.all, 'detail', id] as const,
+  list: (pubKey: string, network?: Network) => [...paymentRequestKeys.all, 'list', pubKey, network] as const,
+  detail: (id: string, network?: Network) => [...paymentRequestKeys.all, 'detail', id, network] as const,
 }
 
 // ─── List requests created by the current wallet ─────────────────────────────
 
 export function usePaymentRequestList() {
-  const { publicKey, isConnected } = useWallet()
+  const { publicKey, network, isConnected } = useWallet()
 
   return useQuery<PaymentRequest[], Error>({
-    queryKey: paymentRequestKeys.list(publicKey ?? ''),
-    queryFn: () => paymentRequestApi.list(publicKey!),
+    queryKey: paymentRequestKeys.list(publicKey ?? '', network),
+    queryFn: () => paymentRequestApi.list(publicKey!, network),
     enabled: isConnected && !!publicKey,
     staleTime: 30_000,
   })
@@ -25,9 +25,11 @@ export function usePaymentRequestList() {
 // ─── Fetch a single request by id (used by the "pay this request" view) ──────
 
 export function usePaymentRequest(requestId: string | undefined) {
+  const { network } = useWallet()
+
   return useQuery<PaymentRequest, Error>({
-    queryKey: paymentRequestKeys.detail(requestId ?? ''),
-    queryFn: () => paymentRequestApi.get(requestId!),
+    queryKey: paymentRequestKeys.detail(requestId ?? '', network),
+    queryFn: () => paymentRequestApi.get(requestId!, network),
     enabled: !!requestId,
     staleTime: 15_000,
     retry: 1,
@@ -37,10 +39,11 @@ export function usePaymentRequest(requestId: string | undefined) {
 // ─── Create ───────────────────────────────────────────────────────────────────
 
 export function useCreatePaymentRequest() {
+  const { network } = useWallet()
   const queryClient = useQueryClient()
 
   return useMutation<PaymentRequest, Error, CreatePaymentRequestPayload>({
-    mutationFn: (payload) => paymentRequestApi.create(payload),
+    mutationFn: (payload) => paymentRequestApi.create({ ...payload, network: payload.network ?? network }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: paymentRequestKeys.all })
     },
@@ -50,10 +53,11 @@ export function useCreatePaymentRequest() {
 // ─── Cancel ───────────────────────────────────────────────────────────────────
 
 export function useCancelPaymentRequest() {
+  const { network } = useWallet()
   const queryClient = useQueryClient()
 
   return useMutation<PaymentRequest, Error, string>({
-    mutationFn: (requestId) => paymentRequestApi.cancel(requestId),
+    mutationFn: (requestId) => paymentRequestApi.cancel(requestId, network),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: paymentRequestKeys.all })
     },

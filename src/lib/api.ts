@@ -18,6 +18,7 @@ import type {
   CreatePaymentRequestPayload,
   Escrow,
   CreateEscrowRequest,
+  Network,
 } from '@/types'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -168,17 +169,18 @@ export const paymentApi = {
 // request/response conventions as quoteApi/paymentApi above.
 
 export const subscriptionApi = {
-  list: (publicKey: string) =>
+  list: (publicKey: string, network?: Network) =>
     request<Subscription[]>({
       method: 'GET',
       url: '/api/subscriptions',
-      params: { publicKey },
+      params: { publicKey, ...(network && { network }) },
     }),
 
-  get: (subscriptionId: string) =>
+  get: (subscriptionId: string, network?: Network) =>
     request<Subscription>({
       method: 'GET',
       url: `/api/subscriptions/${subscriptionId}`,
+      params: network ? { network } : undefined,
     }),
 
   /** Ask the backend to build the unsigned XDR for the first-payment / authorization transaction. */
@@ -197,17 +199,19 @@ export const subscriptionApi = {
       data: payload,
     }),
 
-  buildCancelTransaction: (subscriptionId: string) =>
+  buildCancelTransaction: (subscriptionId: string, network?: Network) =>
     request<{ xdr: string; fee: string }>({
       method: 'POST',
       url: `/api/subscriptions/${subscriptionId}/cancel/build`,
+      params: network ? { network } : undefined,
+      data: network ? { network } : undefined,
     }),
 
-  cancel: (subscriptionId: string, signedXdr?: string) =>
+  cancel: (subscriptionId: string, signedXdr?: string, network?: Network) =>
     request<Subscription>({
       method: 'POST',
       url: `/api/subscriptions/${subscriptionId}/cancel`,
-      data: { signedXdr },
+      data: { signedXdr, ...(network && { network }) },
     }),
 }
 
@@ -236,7 +240,7 @@ export const batchPaymentApi = {
   getStatus: (batchId: string) =>
     request<BatchPaymentResult>({
       method: 'GET',
-      url: `/api/payments/batch/${batchId}`,
+      url: '/api/payments/batch/${batchId}',
     }),
 }
 
@@ -250,40 +254,44 @@ export const paymentRequestApi = {
       data: payload,
     }),
 
-  get: (requestId: string) =>
+  get: (requestId: string, network?: Network) =>
     request<PaymentRequest>({
       method: 'GET',
       url: `/api/payment-requests/${requestId}`,
+      params: network ? { network } : undefined,
     }),
 
-  list: (publicKey: string) =>
+  list: (publicKey: string, network?: Network) =>
     request<PaymentRequest[]>({
       method: 'GET',
       url: '/api/payment-requests',
-      params: { publicKey },
+      params: { publicKey, ...(network && { network }) },
     }),
 
-  cancel: (requestId: string) =>
+  cancel: (requestId: string, network?: Network) =>
     request<PaymentRequest>({
       method: 'POST',
       url: `/api/payment-requests/${requestId}/cancel`,
+      params: network ? { network } : undefined,
+      data: network ? { network } : undefined,
     }),
 }
 
 // ─── Escrow / conditional transfers ───────────────────────────────────────────
 
 export const escrowApi = {
-  list: (publicKey: string) =>
+  list: (publicKey: string, network?: Network) =>
     request<Escrow[]>({
       method: 'GET',
       url: '/api/escrows',
-      params: { publicKey },
+      params: { publicKey, ...(network && { network }) },
     }),
 
-  get: (escrowId: string) =>
+  get: (escrowId: string, network?: Network) =>
     request<Escrow>({
       method: 'GET',
       url: `/api/escrows/${escrowId}`,
+      params: network ? { network } : undefined,
     }),
 
   buildCreateTransaction: (payload: CreateEscrowRequest) =>
@@ -300,30 +308,34 @@ export const escrowApi = {
       data: payload,
     }),
 
-  buildReleaseTransaction: (escrowId: string) =>
+  buildReleaseTransaction: (escrowId: string, network?: Network) =>
     request<{ xdr: string; fee: string }>({
       method: 'POST',
       url: `/api/escrows/${escrowId}/release/build`,
+      params: network ? { network } : undefined,
+      data: network ? { network } : undefined,
     }),
 
-  release: (escrowId: string, signedXdr: string) =>
+  release: (escrowId: string, signedXdr: string, network?: Network) =>
     request<Escrow>({
       method: 'POST',
       url: `/api/escrows/${escrowId}/release`,
-      data: { signedXdr },
+      data: { signedXdr, ...(network && { network }) },
     }),
 
-  buildRefundTransaction: (escrowId: string) =>
+  buildRefundTransaction: (escrowId: string, network?: Network) =>
     request<{ xdr: string; fee: string }>({
       method: 'POST',
       url: `/api/escrows/${escrowId}/refund/build`,
+      params: network ? { network } : undefined,
+      data: network ? { network } : undefined,
     }),
 
-  refund: (escrowId: string, signedXdr: string) =>
+  refund: (escrowId: string, signedXdr: string, network?: Network) =>
     request<Escrow>({
       method: 'POST',
       url: `/api/escrows/${escrowId}/refund`,
-      data: { signedXdr },
+      data: { signedXdr, ...(network && { network }) },
     }),
 }
 
