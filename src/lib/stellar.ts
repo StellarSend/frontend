@@ -61,6 +61,57 @@ export async function estimateFee(network: Network): Promise<string> {
   }
 }
 
+// ─── Memo helper ──────────────────────────────────────────────────────────────
+
+export type MemoTypeOption = 'text' | 'id'
+
+/**
+ * Validates and builds a Stellar memo.
+ *
+ * @param memo - The memo string (can be empty)
+ * @param memoType - The explicit memo type: 'text' or 'id'
+ * @returns A Stellar Memo object, or undefined if memo is empty
+ * @throws Error if memo ID validation fails
+ */
+export function buildMemo(memo: string, memoType: MemoTypeOption): Memo | undefined {
+  const trimmed = memo.trim()
+
+  // No memo if empty after trimming
+  if (!trimmed) {
+    return undefined
+  }
+
+  if (memoType === 'id') {
+    // Validate memo ID format
+    if (!/^\d+$/.test(trimmed)) {
+      throw new Error('Memo ID must contain only digits')
+    }
+
+    // Check if value fits in unsigned 64-bit integer (max value: 18446744073709551615)
+    try {
+      const bigIntValue = BigInt(trimmed)
+      const maxUint64 = BigInt('18446744073709551615')
+      if (bigIntValue > maxUint64) {
+        throw new Error(
+          `Memo ID must not exceed ${maxUint64.toString()} (max unsigned 64-bit integer)`,
+        )
+      }
+    } catch (e) {
+      // BigInt constructor throws if value is invalid
+      if (e instanceof Error && e.message.includes('Cannot convert')) {
+        throw new Error('Memo ID must be a valid numeric value')
+      }
+      throw e
+    }
+
+    return Memo.id(trimmed)
+  }
+
+  // memoType === 'text'
+  // Stellar MEMO_TEXT has a max of 28 bytes
+  return Memo.text(trimmed.slice(0, 28))
+}
+
 // ─── Build payment transaction ────────────────────────────────────────────────
 
 interface BuildPaymentParams {
@@ -69,6 +120,7 @@ interface BuildPaymentParams {
   asset: StellarAsset
   amount: string
   memo?: string
+  memoType?: MemoTypeOption
   network: Network
   timeoutSeconds?: number
 }
@@ -82,6 +134,7 @@ export async function buildPaymentTransaction(
     asset,
     amount,
     memo,
+    memoType = 'text',
     network,
     timeoutSeconds = 30,
   } = params
@@ -108,14 +161,9 @@ export async function buildPaymentTransaction(
     .setTimeout(timeoutSeconds)
 
   if (memo) {
-    const trimmed = memo.trim()
-    if (trimmed) {
-      // Auto-detect memo type
-      if (/^\d+$/.test(trimmed) && BigInt(trimmed) <= BigInt('18446744073709551615')) {
-        builder.addMemo(Memo.id(trimmed))
-      } else {
-        builder.addMemo(Memo.text(trimmed.slice(0, 28)))
-      }
+    const stellarMemo = buildMemo(memo, memoType)
+    if (stellarMemo) {
+      builder.addMemo(stellarMemo)
     }
   }
 
@@ -134,6 +182,7 @@ interface BuildPathPaymentParams {
   destMin: string // minimum destination amount (after slippage)
   path: PathHop[]
   memo?: string
+  memoType?: MemoTypeOption
   network: Network
   timeoutSeconds?: number
 }
@@ -150,6 +199,7 @@ export async function buildPathPaymentTransaction(
     destMin,
     path,
     memo,
+    memoType = 'text',
     network,
     timeoutSeconds = 30,
   } = params
@@ -180,12 +230,10 @@ export async function buildPathPaymentTransaction(
     )
     .setTimeout(timeoutSeconds)
 
-  if (memo?.trim()) {
-    const trimmed = memo.trim()
-    if (/^\d+$/.test(trimmed) && BigInt(trimmed) <= BigInt('18446744073709551615')) {
-      builder.addMemo(Memo.id(trimmed))
-    } else {
-      builder.addMemo(Memo.text(trimmed.slice(0, 28)))
+  if (memo) {
+    const stellarMemo = buildMemo(memo, memoType)
+    if (stellarMemo) {
+      builder.addMemo(stellarMemo)
     }
   }
 
@@ -200,6 +248,7 @@ export async function buildTransactionFromQuote(
   destinationAddress: string,
   network: Network,
   memo?: string,
+  memoType: MemoTypeOption = 'text',
 ): Promise<string> {
   const slippage = parseFloat(quote.slippageTolerance) / 100
   const destMin = (
@@ -216,6 +265,7 @@ export async function buildTransactionFromQuote(
       destMin,
       path: quote.path,
       memo,
+      memoType,
       network,
     })
   }
@@ -226,6 +276,7 @@ export async function buildTransactionFromQuote(
     asset: quote.sourceAsset,
     amount: quote.sendAmount,
     memo,
+    memoType,
     network,
   })
 }
@@ -245,6 +296,7 @@ interface BuildBatchPaymentParams {
   asset: StellarAsset
   recipients: BatchRecipientInput[]
   memo?: string
+  memoType?: MemoTypeOption
   network: Network
   timeoutSeconds?: number
 }
@@ -254,7 +306,15 @@ export const MAX_BATCH_RECIPIENTS = 100
 export async function buildBatchPaymentTransaction(
   params: BuildBatchPaymentParams,
 ): Promise<string> {
-  const { sourcePublicKey, asset, recipients, memo, network, timeoutSeconds = 30 } = params
+  const {
+    sourcePublicKey,
+    asset,
+    recipients,
+    memo,
+    memoType = 'text',
+    network,
+    timeoutSeconds = 30,
+  } = params
 
   if (recipients.length === 0) {
     throw new Error('A batch payment needs at least one recipient')
@@ -291,12 +351,10 @@ export async function buildBatchPaymentTransaction(
 
   builder.setTimeout(timeoutSeconds)
 
-  if (memo?.trim()) {
-    const trimmed = memo.trim()
-    if (/^\d+$/.test(trimmed) && BigInt(trimmed) <= BigInt('18446744073709551615')) {
-      builder.addMemo(Memo.id(trimmed))
-    } else {
-      builder.addMemo(Memo.text(trimmed.slice(0, 28)))
+  if (memo) {
+    const stellarMemo = buildMemo(memo, memoType)
+    if (stellarMemo) {
+      builder.addMemo(stellarMemo)
     }
   }
 

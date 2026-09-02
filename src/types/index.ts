@@ -185,6 +185,7 @@ export interface SendFormValues {
   amountType: 'send' | 'receive'
   usePathPayment: boolean
   memo: string
+  memoType: 'text' | 'id'
 }
 
 // ─── API responses ────────────────────────────────────────────────────────────
@@ -288,6 +289,7 @@ export interface CreateSubscriptionRequest {
   interval: SubscriptionInterval
   startDate: string
   memo?: string
+  memoType?: 'text' | 'id'
 }
 
 export interface SubscriptionFormValues {
@@ -297,6 +299,7 @@ export interface SubscriptionFormValues {
   interval: SubscriptionInterval
   startDate: string
   memo: string
+  memoType: 'text' | 'id'
 }
 
 // ─── Batch / split payments ───────────────────────────────────────────────────
@@ -305,6 +308,7 @@ export interface BatchRecipient {
   destinationAddress: string
   amount: string
   memo?: string
+  memoType?: 'text' | 'id'
 }
 
 export interface BatchPaymentFormValues {
@@ -352,6 +356,7 @@ export interface CreatePaymentRequestPayload {
   assetIssuer: string | null
   amount: string
   memo?: string
+  memoType?: 'text' | 'id'
   expiresAt?: string
 }
 
@@ -359,6 +364,7 @@ export interface PaymentRequestFormValues {
   assetCode: string
   amount: string
   memo: string
+  memoType: 'text' | 'id'
   expiresInHours: string
 }
 

@@ -15,12 +15,37 @@ const requestSchema = z.object({
     .min(1, 'Amount is required')
     .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, 'Amount must be a positive number'),
   memo: z.string().max(28, 'Memo must be ≤ 28 characters').optional().default(''),
+  memoType: z.enum(['text', 'id']).default('text'),
   expiresInHours: z
     .string()
     .optional()
     .default('')
     .refine((v) => v === '' || (!isNaN(parseFloat(v)) && parseFloat(v) > 0), 'Must be a positive number'),
-})
+}).refine(
+  (data) => {
+    // If memo type is 'id', validate that memo contains only digits and fits in uint64
+    if (data.memoType === 'id' && data.memo.trim()) {
+      const trimmed = data.memo.trim()
+      if (!/^\d+$/.test(trimmed)) {
+        return false
+      }
+      try {
+        const bigIntValue = BigInt(trimmed)
+        const maxUint64 = BigInt('18446744073709551615')
+        if (bigIntValue > maxUint64) {
+          return false
+        }
+      } catch {
+        return false
+      }
+    }
+    return true
+  },
+  {
+    message: 'Memo ID must be numeric and not exceed 18446744073709551615',
+    path: ['memo'],
+  },
+)
 
 interface CreateRequestFormProps {
   onSubmit: (values: PaymentRequestFormValues) => void
@@ -51,6 +76,7 @@ export function CreateRequestForm({
       assetCode: 'XLM',
       amount: '',
       memo: '',
+      memoType: 'text',
       expiresInHours: '',
     },
   })
@@ -88,6 +114,17 @@ export function CreateRequestForm({
           error={errors.memo?.message}
           fullWidth
           {...register('memo')}
+        />
+
+        <Select
+          label="Memo Type"
+          options={[
+            { value: 'text', label: 'Text' },
+            { value: 'id', label: 'ID' },
+          ]}
+          hint="Text: Any alphanumeric value. ID: Numeric value only."
+          fullWidth
+          {...register('memoType')}
         />
 
         <Select

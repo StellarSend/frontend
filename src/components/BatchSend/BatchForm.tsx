@@ -22,7 +22,32 @@ const recipientSchema = z.object({
     .min(1, 'Required')
     .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, 'Must be > 0'),
   memo: z.string().max(28).optional().default(''),
-})
+  memoType: z.enum(['text', 'id']).optional().default('text'),
+}).refine(
+  (data) => {
+    // If memo type is 'id', validate that memo contains only digits and fits in uint64
+    if (data.memoType === 'id' && data.memo && data.memo.trim()) {
+      const trimmed = data.memo.trim()
+      if (!/^\d+$/.test(trimmed)) {
+        return false
+      }
+      try {
+        const bigIntValue = BigInt(trimmed)
+        const maxUint64 = BigInt('18446744073709551615')
+        if (bigIntValue > maxUint64) {
+          return false
+        }
+      } catch {
+        return false
+      }
+    }
+    return true
+  },
+  {
+    message: 'Memo ID must be numeric and not exceed 18446744073709551615',
+    path: ['memo'],
+  },
+)
 
 const batchSchema = z.object({
   assetCode: z.string().min(1),
@@ -56,7 +81,7 @@ export function BatchForm({
     mode: 'onChange',
     defaultValues: {
       assetCode: 'XLM',
-      recipients: [{ destinationAddress: '', amount: '', memo: '' }],
+      recipients: [{ destinationAddress: '', amount: '', memo: '', memoType: 'text' }],
       ...defaultValues,
     },
   })
@@ -88,12 +113,15 @@ export function BatchForm({
             >
               <div className="flex-1 space-y-2">
                 <Input
+                  aria-label={`Recipient ${index + 1} address`}
                   placeholder="G... recipient address"
                   fullWidth
                   error={errors.recipients?.[index]?.destinationAddress?.message}
                   {...register(`recipients.${index}.destinationAddress` as const)}
                 />
+                
                 <Input
+                  aria-label={`Recipient ${index + 1} amount`}
                   placeholder="Amount"
                   type="number"
                   min="0"
@@ -102,6 +130,29 @@ export function BatchForm({
                   error={errors.recipients?.[index]?.amount?.message}
                   {...register(`recipients.${index}.amount` as const)}
                 />
+                
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Input
+                      aria-label={`Recipient ${index + 1} memo`}
+                      placeholder="Memo (optional)"
+                      fullWidth
+                      error={errors.recipients?.[index]?.memo?.message}
+                      {...register(`recipients.${index}.memo` as const)}
+                    />
+                  </div>
+                  <div className="w-1/3">
+                    <Select
+                      aria-label={`Recipient ${index + 1} memo type`}
+                      options={[
+                        { value: 'text', label: 'Text' },
+                        { value: 'id', label: 'ID' },
+                      ]}
+                      fullWidth
+                      {...register(`recipients.${index}.memoType` as const)}
+                    />
+                  </div>
+                </div>
               </div>
               <button
                 type="button"
@@ -124,7 +175,7 @@ export function BatchForm({
             variant="outline"
             size="sm"
             icon={<Plus size={14} />}
-            onClick={() => append({ destinationAddress: '', amount: '', memo: '' })}
+            onClick={() => append({ destinationAddress: '', amount: '', memo: '', memoType: 'text' })}
             disabled={fields.length >= MAX_BATCH_RECIPIENTS}
           >
             Add recipient
