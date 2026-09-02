@@ -11,9 +11,18 @@ interface RequestListProps {
   isLoading: boolean
   isError: boolean
   onRetry: () => void
+  onCancel?: (id: string) => void
+  cancellingIds?: Set<string>
 }
 
-export function RequestList({ requests, isLoading, isError, onRetry }: RequestListProps) {
+export function RequestList({
+  requests,
+  isLoading,
+  isError,
+  onRetry,
+  onCancel,
+  cancellingIds,
+}: RequestListProps) {
   return (
     <Card>
       <CardHeader>
@@ -42,7 +51,12 @@ export function RequestList({ requests, isLoading, isError, onRetry }: RequestLi
       {!isLoading && !isError && requests && requests.length > 0 && (
         <div>
           {requests.map((r) => (
-            <RequestItem key={r.id} request={r} />
+            <RequestItem
+              key={r.id}
+              request={r}
+              onCancel={onCancel}
+              isCancelling={cancellingIds?.has(r.id) ?? false}
+            />
           ))}
         </div>
       )}

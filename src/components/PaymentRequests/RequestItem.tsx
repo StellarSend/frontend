@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { FileText, QrCode, Copy, Check } from 'lucide-react'
+import { FileText, QrCode, Copy, Check, X } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { formatAmount } from '@/lib/stellar'
@@ -10,6 +10,8 @@ import type { PaymentRequest } from '@/types'
 
 interface RequestItemProps {
   request: PaymentRequest
+  onCancel?: (id: string) => void
+  isCancelling?: boolean
 }
 
 const statusVariant: Record<PaymentRequest['status'], 'success' | 'neutral' | 'danger' | 'warning'> = {
@@ -19,7 +21,7 @@ const statusVariant: Record<PaymentRequest['status'], 'success' | 'neutral' | 'd
   cancelled: 'danger',
 }
 
-export function RequestItem({ request }: RequestItemProps) {
+export function RequestItem({ request, onCancel, isCancelling }: RequestItemProps) {
   const [showQr, setShowQr] = useState(false)
   const [copied, setCopied] = useState(false)
   const link = buildPaymentRequestLink(request.id)
@@ -29,6 +31,8 @@ export function RequestItem({ request }: RequestItemProps) {
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
+
+  const canCancel = request.status === 'open' && Boolean(onCancel)
 
   return (
     <div className="py-4 border-b border-navy-700/40 last:border-0">
@@ -53,6 +57,18 @@ export function RequestItem({ request }: RequestItemProps) {
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {canCancel && (
+            <Button
+              variant="ghost"
+              size="xs"
+              icon={<X size={13} />}
+              loading={isCancelling}
+              onClick={() => onCancel?.(request.id)}
+              className="text-danger-400 hover:text-danger-300 hover:bg-danger-500/10"
+            >
+              Cancel
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="xs"
