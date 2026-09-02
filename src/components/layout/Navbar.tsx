@@ -16,6 +16,7 @@ import {
 import { useState } from 'react'
 import { ConnectWallet } from '@/components/wallet/ConnectWallet'
 import { WalletInfo } from '@/components/wallet/WalletInfo'
+import { DarkModeToggle } from '@/components/common/DarkModeToggle'
 import { NetworkBadge } from '@/components/ui/Badge'
 import { useWallet } from '@/hooks/useWallet'
 import { cn } from '@/lib/utils'
@@ -58,8 +59,9 @@ export function Navbar() {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Right side: network + address only — the Sidebar owns navigation */}
+        {/* Right side: network + theme toggle + address — the Sidebar owns navigation */}
         <div className="hidden lg:flex items-center gap-3">
+          <DarkModeToggle />
           {isConnected && <NetworkBadge network={network} />}
           {isConnected && publicKey ? <WalletInfo /> : <ConnectWallet />}
         </div>
@@ -95,7 +97,11 @@ export function Navbar() {
               {label}
             </NavLink>
           ))}
-          <div className="pt-3 border-t border-navy-700/50">
+          <div className="pt-3 border-t border-navy-700/50 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400">Theme:</span>
+              <DarkModeToggle />
+            </div>
             {isConnected && publicKey ? <WalletInfo /> : <ConnectWallet fullWidth />}
           </div>
         </div>
