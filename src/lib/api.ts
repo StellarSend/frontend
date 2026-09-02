@@ -421,7 +421,7 @@ export async function fetchTransactionsFromHorizon(
   limit = 20,
   cursor?: string,
 ): Promise<TransactionPage> {
-  const base = `${horizonUrl(network)}/accounts/${publicKey}/transactions`
+  const base = `${horizonUrl(network)}/accounts/${publicKey}/payments`
   const params = new URLSearchParams({
     limit: String(limit),
     order: 'desc',
@@ -444,24 +444,84 @@ export async function fetchTransactionsFromHorizon(
     cursor: records[records.length - 1]?.paging_token,
     transactions: records.map(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (r: any): import('@/types').Transaction => ({
-        id: r.id,
-        hash: r.hash,
-        createdAt: r.created_at,
-        type: 'payment',
-        status: r.successful ? 'success' : 'failed',
-        sourceAccount: r.source_account,
-        destinationAccount: publicKey,
-        amount: '0',
-        assetCode: 'XLM',
-        assetIssuer: null,
-        fee: r.fee_charged,
-        ledger: r.ledger,
-        memo: r.memo,
-        direction: r.source_account === publicKey ? 'sent' : 'received',
-        counterparty:
-          r.source_account === publicKey ? publicKey : r.source_account,
-      }),
+      (r: any): import('@/types').Transaction => {
+        let txType: import('@/types').TransactionType = 'payment'
+        if (
+          r.type === 'path_payment_strict_send' ||
+          r.type === 'path_payment_strict_receive'
+        ) {
+          txType = 'path_payment'
+        } else if (r.type === 'create_account') {
+          txType = 'create_account'
+        } else if (r.type === 'change_trust') {
+          txType = 'change_trust'
+        } else if (r.type === 'manage_buy_offer' || r.type === 'manage_sell_offer') {
+          txType = 'manage_offer'
+        } else if (r.type !== 'payment') {
+          txType = 'other'
+        }
+
+        const source = r.from || r.source_account || r.funder || publicKey
+        const destination =
+          r.to || r.destination_account || r.account || publicKey
+        const isSent =
+          source === publicKey || (r.funder && r.funder === publicKey)
+        const direction: 'sent' | 'received' = isSent ? 'sent' : 'received'
+        const counterparty = direction === 'sent' ? destination : source
+
+        const amount =
+          r.amount ||
+          r.starting_balance ||
+          r.dest_amount ||
+          r.source_amount ||
+          '0'
+        const assetCode =
+          r.asset_type === 'native' || r.type === 'create_account'
+            ? 'XLM'
+            : r.asset_code || r.dest_asset_code || 'XLM'
+        const assetIssuer =
+          r.asset_type === 'native' || r.type === 'create_account'
+            ? null
+            : r.asset_issuer || r.dest_asset_issuer || null
+
+        return {
+          id: r.id,
+          hash: r.transaction_hash || r.hash || r.id,
+          createdAt: r.created_at,
+          type: txType,
+          status:
+            r.transaction_successful === false || r.successful === false
+              ? 'failed'
+              : 'success',
+          sourceAccount: source,
+          destinationAccount: destination,
+          amount,
+          assetCode,
+          assetIssuer,
+          fee: r.fee_charged || '0',
+          ledger: r.ledger || 0,
+          memo: r.memo,
+          direction,
+          counterparty,
+          ...(txType === 'path_payment'
+            ? {
+                sendAssetCode:
+                  r.source_asset_type === 'native'
+                    ? 'XLM'
+                    : r.source_asset_code,
+                sendAssetIssuer:
+                  r.source_asset_type === 'native'
+                    ? null
+                    : r.source_asset_issuer,
+                sendAmount: r.source_amount,
+                destinationAssetCode:
+                  r.asset_type === 'native' ? 'XLM' : r.asset_code,
+                destinationAssetIssuer:
+                  r.asset_type === 'native' ? null : r.asset_issuer,
+              }
+            : {}),
+        }
+      },
     ),
   }
 }
