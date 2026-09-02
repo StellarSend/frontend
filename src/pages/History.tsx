@@ -38,9 +38,12 @@ function HistoryChart() {
       day: 'numeric',
     })
     if (days[key]) {
-      if (tx.direction === 'sent') days[key].sent += parseFloat(tx.amount || '0')
-      else days[key].received += parseFloat(tx.amount || '0')
-      days[key].fees += parseFloat(tx.fee || '0') / 10_000_000
+      if (tx.direction === 'sent') {
+        days[key].sent += parseFloat(tx.amount || '0')
+        days[key].fees += parseFloat(tx.fee || '0') / 10_000_000
+      } else {
+        days[key].received += parseFloat(tx.amount || '0')
+      }
     }
   })
 
@@ -102,9 +105,10 @@ function HistorySummary() {
   const { data } = useRecentTransactions(50)
   const txs = data?.transactions ?? []
 
-  const totalSent = txs.filter((t) => t.direction === 'sent').reduce((s, t) => s + parseFloat(t.amount || '0'), 0)
+  const sentTxs = txs.filter((t) => t.direction === 'sent')
+  const totalSent = sentTxs.reduce((s, t) => s + parseFloat(t.amount || '0'), 0)
   const totalReceived = txs.filter((t) => t.direction === 'received').reduce((s, t) => s + parseFloat(t.amount || '0'), 0)
-  const totalFees = txs.reduce((s, t) => s + parseFloat(t.fee || '0') / 10_000_000, 0)
+  const totalFees = sentTxs.reduce((s, t) => s + parseFloat(t.fee || '0') / 10_000_000, 0)
   const successRate = txs.length
     ? Math.round((txs.filter((t) => t.status === 'success').length / txs.length) * 100)
     : 100
