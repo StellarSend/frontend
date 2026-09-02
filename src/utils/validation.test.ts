@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest"
 import { validateAmount, validateRecipient, validateMemo } from "./validation"
 const VALID_ADDR = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
+const INVALID_CHECKSUM_ADDR = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLAA"
+
 describe("validateAmount", () => {
   it("rejects empty string", () => expect(validateAmount("")).not.toBeNull())
   it("rejects zero", () => expect(validateAmount("0")).not.toBeNull())
@@ -11,6 +13,7 @@ describe("validateAmount", () => {
 describe("validateRecipient", () => {
   it("rejects empty", () => expect(validateRecipient("")).not.toBeNull())
   it("rejects invalid address", () => expect(validateRecipient("invalid")).not.toBeNull())
+  it("rejects invalid checksum 56-char address", () => expect(validateRecipient(INVALID_CHECKSUM_ADDR)).not.toBeNull())
   it("accepts valid G address", () => expect(validateRecipient(VALID_ADDR)).toBeNull())
 })
 describe("validateMemo", () => {

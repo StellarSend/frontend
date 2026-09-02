@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { isValidStellarAddress } from '../../utils/stellar'
+import { isValidStellarAddress } from '@/lib/stellar'
 import type { Contact } from './ContactItem'
 
 interface Props {

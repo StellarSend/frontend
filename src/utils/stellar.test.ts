@@ -7,11 +7,17 @@ describe('isValidStellarAddress', () => {
   it('accepts valid G address', () => expect(isValidStellarAddress(VALID)).toBe(true))
   it('rejects short address', () => expect(isValidStellarAddress('GABCD')).toBe(false))
   it('rejects empty string', () => expect(isValidStellarAddress('')).toBe(false))
+  it('rejects malformed checksum', () => expect(isValidStellarAddress('GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLAA')).toBe(false))
 })
 
 describe('truncateAddress', () => {
   it('truncates long address', () => {
-    expect(truncateAddress(VALID)).toMatch(/^GBBD47…/)
+    expect(truncateAddress(VALID)).toMatch(/^GBBD47\.\.\./)
+  })
+
+  it('returns short string without overlapping slice duplication', () => {
+    expect(truncateAddress('GABCD', 6)).toBe('GABCD')
+    expect(truncateAddress('', 6)).toBe('')
   })
 })
 
