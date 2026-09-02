@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/Button'
 import {
   useCreatePaymentRequest,
   usePaymentRequestList,
+  useCancelPaymentRequest,
   buildPaymentRequestLink,
 } from '@/hooks/usePaymentRequests'
+import { usePendingIds } from '@/hooks/usePendingIds'
 import { useSupportedAssets } from '@/hooks/useSendPayment'
 import { useWallet } from '@/hooks/useWallet'
 import type { PaymentRequestFormValues } from '@/types'
@@ -19,6 +21,8 @@ export default function PaymentRequests() {
   const { isConnected, publicKey } = useWallet()
   const supportedAssets = useSupportedAssets()
   const createMutation = useCreatePaymentRequest()
+  const cancelMutation = useCancelPaymentRequest()
+  const { pendingIds: cancellingIds, track: trackCancel } = usePendingIds()
   const { data: requests, isLoading, isError, refetch } = usePaymentRequestList()
   const [createdLink, setCreatedLink] = useState<string | null>(null)
 
@@ -107,6 +111,8 @@ export default function PaymentRequests() {
             isLoading={isLoading}
             isError={isError}
             onRetry={() => refetch()}
+            onCancel={(id) => trackCancel(id, cancelMutation.mutateAsync(id))}
+            cancellingIds={cancellingIds}
           />
         </div>
 
