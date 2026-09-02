@@ -13,6 +13,7 @@ import { NetworkBadge } from '@/components/ui/Badge'
 import { useWallet } from '@/hooks/useWallet'
 import { truncateAddress, formatXLM, formatAmount } from '@/lib/stellar'
 import { copyToClipboard } from '@/lib/utils'
+import { USDC_MAINNET, USDC_TESTNET } from '@/types'
 
 export function WalletInfo() {
   const {
@@ -30,6 +31,15 @@ export function WalletInfo() {
   const [refreshing, setRefreshing] = useState(false)
 
   if (!publicKey) return null
+
+  const expectedUsdcIssuer =
+    network === 'testnet' ? USDC_TESTNET.issuer : USDC_MAINNET.issuer
+
+  const isNativeOrTrustedUsdc = (code: string, issuer: string | null) => {
+    if (code === 'XLM' && issuer === null) return true
+    if (code === 'USDC' && issuer === expectedUsdcIssuer) return true
+    return false
+  }
 
   const handleCopy = async () => {
     await copyToClipboard(publicKey)
@@ -156,7 +166,7 @@ export function WalletInfo() {
               />
 
               {account && account.balances.filter(
-                (b) => b.asset.code !== 'XLM' && b.asset.code !== 'USDC',
+                (b) => !isNativeOrTrustedUsdc(b.asset.code, b.asset.issuer),
               ).map((b) => (
                 <BalanceRow
                   key={`${b.asset.code}-${b.asset.issuer}`}

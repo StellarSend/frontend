@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/Spinner'
 import { NetworkBadge } from '@/components/ui/Badge'
 import { useWallet } from '@/hooks/useWallet'
 import { formatXLM, formatAmount } from '@/lib/stellar'
+import { USDC_MAINNET, USDC_TESTNET } from '@/types'
 
 export function BalanceCard() {
   const { account, xlmBalance, usdcBalance, network, refreshAccount } = useWallet()
@@ -21,6 +22,15 @@ export function BalanceCard() {
   }
 
   const mask = (_val: string) => '••••••'
+
+  const expectedUsdcIssuer =
+    network === 'testnet' ? USDC_TESTNET.issuer : USDC_MAINNET.issuer
+
+  const isNativeOrTrustedUsdc = (code: string, issuer: string | null) => {
+    if (code === 'XLM' && issuer === null) return true
+    if (code === 'USDC' && issuer === expectedUsdcIssuer) return true
+    return false
+  }
 
   return (
     <Card glow className="relative overflow-hidden">
@@ -73,7 +83,7 @@ export function BalanceCard() {
             format={(v) => (hidden ? '••••' : formatAmount(v, 2) + ' USDC')}
           />
           {account?.balances
-            .filter((b) => b.asset.code !== 'XLM' && b.asset.code !== 'USDC')
+            .filter((b) => !isNativeOrTrustedUsdc(b.asset.code, b.asset.issuer))
             .slice(0, 2)
             .map((b) => (
               <BalancePill
