@@ -10,6 +10,9 @@ import {
   Copy,
   Check,
   AlertTriangle,
+  Sun,
+  Moon,
+  Laptop,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -17,6 +20,7 @@ import { Input, Select } from '@/components/ui/Input'
 import { NetworkBadge } from '@/components/ui/Badge'
 import { ConnectWallet } from '@/components/wallet/ConnectWallet'
 import { useWallet } from '@/hooks/useWallet'
+import { useTheme } from '@/hooks/useTheme'
 import { truncateAddress, formatXLM } from '@/lib/stellar'
 import { copyToClipboard } from '@/lib/utils'
 import type { Network, AppSettings } from '@/types'
@@ -72,6 +76,7 @@ function SettingsSection({
 export default function Settings() {
   const { isConnected, publicKey, network, account, xlmBalance, setNetwork, disconnect } =
     useWallet()
+  const { theme, setTheme } = useTheme()
   const { settings, save, reset } = useSettings()
   const [localSettings, setLocalSettings] = useState(settings)
   const [saved, setSaved] = useState(false)
@@ -289,26 +294,57 @@ export default function Settings() {
         />
       </SettingsSection>
 
-      {/* Notifications (UI only) */}
-      <SettingsSection title="Display" icon={<Bell size={17} />}>
-        <label className="flex items-center justify-between cursor-pointer">
+      {/* Display / Appearance */}
+      <SettingsSection title="Appearance & Display" icon={<Bell size={17} />}>
+        <div className="space-y-4">
           <div>
-            <p className="text-sm font-medium text-slate-200">Show testnet banner</p>
-            <p className="text-xs text-slate-500">
-              Display a warning banner when using testnet
-            </p>
+            <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2">
+              Theme
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { id: 'light', label: 'Light', icon: Sun },
+                { id: 'dark', label: 'Dark', icon: Moon },
+                { id: 'system', label: 'System', icon: Laptop },
+              ].map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTheme(id as 'light' | 'dark' | 'system')}
+                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-sm font-medium transition-all ${
+                    theme === id
+                      ? 'border-stellar-500 bg-stellar-500/15 text-white shadow-inner-glow'
+                      : 'border-navy-600/50 bg-navy-900/40 text-slate-400 hover:text-slate-200 hover:border-navy-500'
+                  }`}
+                >
+                  <Icon size={15} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="relative">
-            <input
-              type="checkbox"
-              checked={localSettings.showTestnetWarning}
-              onChange={(e) => update('showTestnetWarning', e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-9 h-5 bg-navy-700 border border-navy-600 rounded-full peer-checked:bg-stellar-600 peer-checked:border-stellar-500 transition-all" />
-            <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-slate-400 rounded-full peer-checked:translate-x-4 peer-checked:bg-white transition-all" />
+
+          <div className="pt-2 border-t border-navy-700/40">
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <p className="text-sm font-medium text-slate-200">Show testnet banner</p>
+                <p className="text-xs text-slate-500">
+                  Display a warning banner when using testnet
+                </p>
+              </div>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={localSettings.showTestnetWarning}
+                  onChange={(e) => update('showTestnetWarning', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-navy-700 border border-navy-600 rounded-full peer-checked:bg-stellar-600 peer-checked:border-stellar-500 transition-all" />
+                <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-slate-400 rounded-full peer-checked:translate-x-4 peer-checked:bg-white transition-all" />
+              </div>
+            </label>
           </div>
-        </label>
+        </div>
       </SettingsSection>
 
       {/* Save button (bottom) */}
