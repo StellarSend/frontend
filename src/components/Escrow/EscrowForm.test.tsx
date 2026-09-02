@@ -102,4 +102,16 @@ describe('EscrowForm self-escrow / arbiter guards', () => {
     await user.click(screen.getByRole('button', { name: /review escrow/i }))
     expect(onSubmit).toHaveBeenCalled()
   })
+
+  it('uses local datetime formatting for default unlock time', () => {
+    render(
+      <EscrowForm
+        onSubmit={vi.fn()}
+        supportedAssets={supportedAssets}
+        depositorPublicKey={DEPOSITOR}
+      />,
+    )
+    const unlockInput = screen.getByLabelText(/unlock time/i) as HTMLInputElement
+    expect(unlockInput.value).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
+  })
 })
