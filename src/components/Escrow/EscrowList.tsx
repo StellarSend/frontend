@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Lock } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Skeleton } from '@/components/common/Skeleton'
@@ -31,6 +31,16 @@ export function EscrowList({
   releasingIds,
   refundingIds,
 }: EscrowListProps) {
+  // Periodically tick wall-clock time so EscrowItem re-evaluates unlockTime (#40)
+  const [now, setNow] = useState<Date>(() => new Date())
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date())
+    }, 10_000)
+    return () => clearInterval(timer)
+  }, [])
+
   return (
     <Card>
       <CardHeader>
@@ -67,6 +77,7 @@ export function EscrowList({
               onRefund={onRefund}
               isReleasing={releasingIds?.has(e.id) ?? false}
               isRefunding={refundingIds?.has(e.id) ?? false}
+              now={now}
             />
           ))}
         </div>
