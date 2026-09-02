@@ -8,6 +8,7 @@ import {
   Horizon,
   TransactionBuilder,
   BASE_FEE,
+  StrKey,
 } from '@stellar/stellar-sdk'
 import type { Network, StellarAsset, Quote, PathHop } from '@/types'
 
@@ -322,18 +323,15 @@ export async function submitTransaction(
 // ─── Validate Stellar address ─────────────────────────────────────────────────
 
 export function isValidStellarAddress(address: string): boolean {
-  try {
-    Keypair.fromPublicKey(address)
-    return true
-  } catch {
-    return false
-  }
+  if (!address) return false
+  return StrKey.isValidEd25519PublicKey(address)
 }
 
 // ─── Truncate address ─────────────────────────────────────────────────────────
 
 export function truncateAddress(address: string, chars = 6): string {
   if (!address) return ''
+  if (address.length <= chars * 2) return address
   return `${address.slice(0, chars)}...${address.slice(-chars)}`
 }
 
