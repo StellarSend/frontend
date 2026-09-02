@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { subscriptionApi } from '@/lib/api'
-import { buildPaymentTransaction } from '@/lib/stellar'
 import { useWallet } from './useWallet'
 import { useSupportedAssets } from './useSendPayment'
 import type { Subscription, SubscriptionFormValues, CreateSubscriptionRequest } from '@/types'
@@ -44,7 +43,7 @@ interface CreateSubscriptionState {
 }
 
 export function useCreateSubscription() {
-  const { publicKey, network, signTransaction, isConnected, refreshAccount } = useWallet()
+  const { publicKey, signTransaction, isConnected, refreshAccount } = useWallet()
   const queryClient = useQueryClient()
   const supportedAssets = useSupportedAssets()
 
@@ -76,24 +75,13 @@ export function useCreateSubscription() {
 
       setState((s) => ({ ...s, step: 'signing' }))
 
-      let xdr: string
-      try {
-        const built = await subscriptionApi.buildCreateTransaction(request)
-        xdr = built.xdr
-      } catch {
-        // Backend not available yet — fall back to building a plain first
-        // payment locally so the sign/submit flow can still be exercised.
-        xdr = await buildPaymentTransaction({
-          sourcePublicKey: publicKey,
-          destinationAddress: values.destinationAddress,
-          asset,
-          amount: values.amount,
-          memo: values.memo || undefined,
-          network,
-        })
-      }
-
-      const signedXdr = await signTransaction(xdr)
+      // Build the subscription-authorization transaction via the backend.
+      // If the endpoint is unavailable, surface the error clearly — do NOT
+      // silently substitute a plain one-time payment, which would charge the
+      // user's wallet immediately while registering the result as a recurring
+      // schedule (see issue #15).
+      const built = await subscriptionApi.buildCreateTransaction(request)
+      const signedXdr = await signTransaction(built.xdr)
 
       setState((s) => ({ ...s, step: 'submitting' }))
       return subscriptionApi.create({ ...request, signedXdr })
