@@ -76,6 +76,7 @@ export default function Send() {
   const {
     state,
     requestQuote,
+    refreshQuote,
     confirmSend,
     reset,
     goBack,
@@ -152,6 +153,7 @@ export default function Send() {
               <QuoteCard
                 quote={state.quote}
                 isLoading={isQuoting}
+                onRefresh={refreshQuote}
                 onBack={goBack}
                 onConfirm={confirmSend}
                 isSending={isSending}

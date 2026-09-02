@@ -23,6 +23,7 @@ export default function PayRequest() {
   const {
     state,
     requestQuote,
+    refreshQuote,
     confirmSend,
     reset,
     goBack,
@@ -141,7 +142,14 @@ export default function PayRequest() {
       )}
 
       {state.step === 'review' && state.quote && (
-        <QuoteCard quote={state.quote} isLoading={isQuoting} onBack={goBack} onConfirm={confirmSend} isSending={isSending} />
+        <QuoteCard
+          quote={state.quote}
+          isLoading={isQuoting}
+          onRefresh={refreshQuote}
+          onBack={goBack}
+          onConfirm={confirmSend}
+          isSending={isSending}
+        />
       )}
 
       {state.quote && state.formValues && (
