@@ -47,6 +47,7 @@ interface SendFormProps {
   isLoading?: boolean
   supportedAssets: { code: string; name: string }[]
   defaultValues?: Partial<SendFormValues>
+  lockedFields?: Partial<Record<keyof SendFormValues, boolean>>
 }
 
 export function SendForm({
@@ -54,6 +55,7 @@ export function SendForm({
   isLoading = false,
   supportedAssets,
   defaultValues,
+  lockedFields,
 }: SendFormProps) {
   const {
     register,
@@ -61,6 +63,7 @@ export function SendForm({
     watch,
     setValue,
     control,
+    trigger,
     formState: { errors, isValid },
   } = useForm<SendFormValues>({
     resolver: zodResolver(sendSchema),
@@ -76,6 +79,12 @@ export function SendForm({
       ...defaultValues,
     },
   })
+
+  React.useEffect(() => {
+    if (defaultValues) {
+      trigger()
+    }
+  }, [trigger, defaultValues])
 
   const sourceAsset = watch('sourceAssetCode')
   const destAsset = watch('destinationAssetCode')
@@ -106,6 +115,7 @@ export function SendForm({
           error={errors.destinationAddress?.message}
           leftIcon={<User size={15} />}
           fullWidth
+          readOnly={lockedFields?.destinationAddress}
           {...register('destinationAddress')}
         />
 
@@ -117,6 +127,7 @@ export function SendForm({
                 label="From"
                 options={assetOptions}
                 fullWidth
+                disabled={lockedFields?.sourceAssetCode}
                 {...register('sourceAssetCode')}
               />
             </div>
@@ -124,7 +135,8 @@ export function SendForm({
             <button
               type="button"
               onClick={swapAssets}
-              className="mb-0.5 p-2.5 rounded-xl bg-navy-700 border border-navy-600 hover:border-stellar-500/40 hover:bg-navy-600 text-slate-400 hover:text-stellar-400 transition-all"
+              disabled={lockedFields?.sourceAssetCode || lockedFields?.destinationAssetCode}
+              className="mb-0.5 p-2.5 rounded-xl bg-navy-700 border border-navy-600 hover:border-stellar-500/40 hover:bg-navy-600 text-slate-400 hover:text-stellar-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-navy-600 disabled:hover:bg-navy-700 disabled:hover:text-slate-400 transition-all"
               title="Swap assets"
             >
               <ArrowRightLeft size={16} />
@@ -135,6 +147,7 @@ export function SendForm({
                 label="To"
                 options={assetOptions}
                 fullWidth
+                disabled={lockedFields?.destinationAssetCode}
                 {...register('destinationAssetCode')}
               />
             </div>
@@ -150,14 +163,16 @@ export function SendForm({
               step="0.0000001"
               error={errors.amount?.message}
               fullWidth
+              readOnly={lockedFields?.amount}
               rightElement={
                 <div className="flex">
                   <button
                     type="button"
+                    disabled={lockedFields?.amountType}
                     onClick={() =>
                       setValue('amountType', amountType === 'send' ? 'receive' : 'send')
                     }
-                    className="text-xs text-stellar-400 hover:text-stellar-300 font-medium px-2 py-1 rounded-lg hover:bg-stellar-500/10 transition-all"
+                    className="text-xs text-stellar-400 hover:text-stellar-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-stellar-400 disabled:hover:bg-transparent font-medium px-2 py-1 rounded-lg hover:bg-stellar-500/10 transition-all"
                   >
                     {amountType === 'send' ? '⇌ receive' : '⇌ send'}
                   </button>

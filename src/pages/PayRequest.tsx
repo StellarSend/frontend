@@ -127,7 +127,22 @@ export default function PayRequest() {
 
       {(state.step === 'form' || state.step === 'error') && (
         <SendForm
-          onSubmit={requestQuote}
+          onSubmit={async (values) => {
+            // Re-fetch latest payment request data to prevent paying stale/changed/closed requests
+            const latest = await refetch()
+            const freshRequest = latest.data
+            if (!freshRequest || freshRequest.status !== 'open') {
+              return
+            }
+            if (
+              values.destinationAddress !== freshRequest.requesterPublicKey ||
+              values.amount !== freshRequest.amount ||
+              values.destinationAssetCode !== freshRequest.assetCode
+            ) {
+              return
+            }
+            requestQuote(values)
+          }}
           isLoading={isQuoting}
           supportedAssets={supportedAssets}
           defaultValues={{
@@ -136,6 +151,12 @@ export default function PayRequest() {
             sourceAssetCode: paymentRequest.assetCode,
             destinationAssetCode: paymentRequest.assetCode,
             memo: paymentRequest.memo ?? '',
+          }}
+          lockedFields={{
+            destinationAddress: true,
+            amount: true,
+            destinationAssetCode: true,
+            amountType: true,
           }}
         />
       )}
