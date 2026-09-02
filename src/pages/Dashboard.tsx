@@ -19,37 +19,14 @@ import {
 } from 'recharts'
 import { useRecentTransactions } from '@/hooks/useTransactions'
 
+import { getActivityChartData } from '@/utils/chart'
+
 // ─── Activity chart ───────────────────────────────────────────────────────────
 
 function ActivityChart() {
   const { data } = useRecentTransactions(50)
   const transactions = data?.transactions ?? []
-
-  // Group by day (last 7 days)
-  const days: Record<string, { sent: number; received: number }> = {}
-  const now = Date.now()
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now - i * 86_400_000)
-    const key = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    days[key] = { sent: 0, received: 0 }
-  }
-
-  transactions.forEach((tx) => {
-    const key = new Date(tx.createdAt).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    })
-    if (days[key]) {
-      if (tx.direction === 'sent') days[key].sent += parseFloat(tx.amount || '0')
-      else days[key].received += parseFloat(tx.amount || '0')
-    }
-  })
-
-  const chartData = Object.entries(days).map(([date, vals]) => ({
-    date,
-    sent: parseFloat(vals.sent.toFixed(4)),
-    received: parseFloat(vals.received.toFixed(4)),
-  }))
+  const chartData = getActivityChartData(transactions)
 
   return (
     <Card>
