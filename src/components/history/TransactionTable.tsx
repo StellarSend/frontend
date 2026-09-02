@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useMemo } from 'react'
 import { Inbox, AlertCircle, ChevronDown, Filter, Search } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -6,28 +6,33 @@ import { SkeletonRow } from '@/components/ui/Spinner'
 import { TransactionRow } from './TransactionRow'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useWallet } from '@/hooks/useWallet'
+import { useDebounce } from '@/hooks/useDebounce'
 import { Input } from '@/components/ui/Input'
-import { useState } from 'react'
 import type { Transaction } from '@/types'
 
 export function TransactionTable() {
   const { network } = useWallet()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 200)
 
   const { data, isLoading, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useTransactions()
 
-  const allTransactions: Transaction[] =
-    data?.pages.flatMap((p) => p.transactions) ?? []
+  const allTransactions: Transaction[] = useMemo(
+    () => data?.pages.flatMap((p) => p.transactions) ?? [],
+    [data],
+  )
 
-  const filtered = search.trim()
-    ? allTransactions.filter(
-        (tx) =>
-          tx.hash.toLowerCase().includes(search.toLowerCase()) ||
-          tx.counterparty.toLowerCase().includes(search.toLowerCase()) ||
-          tx.assetCode.toLowerCase().includes(search.toLowerCase()),
-      )
-    : allTransactions
+  const filtered = useMemo(() => {
+    const term = debouncedSearch.trim().toLowerCase()
+    if (!term) return allTransactions
+    return allTransactions.filter(
+      (tx) =>
+        tx.hash.toLowerCase().includes(term) ||
+        tx.counterparty.toLowerCase().includes(term) ||
+        tx.assetCode.toLowerCase().includes(term),
+    )
+  }, [allTransactions, debouncedSearch])
 
   return (
     <Card padding="none">
