@@ -62,9 +62,61 @@ function useCancelHarness() {
 beforeEach(() => {
   apiMocks.subscriptionApi.buildCancelTransaction.mockReset()
   apiMocks.subscriptionApi.cancel.mockReset()
+  walletMocks.signTransaction.mockReset()
+  walletMocks.signTransaction.mockImplementation(async (xdr: string) => `signed:${xdr}`)
   // No on-chain authorization needed for these ids — purely a backend flag
   // flip, matching useCancelSubscription's documented fallback path.
   apiMocks.subscriptionApi.buildCancelTransaction.mockResolvedValue({ xdr: undefined })
+})
+
+describe('useCancelSubscription error handling and signature verification (#16)', () => {
+  it('happy path with no signature needed: buildCancelTransaction returns no xdr -> calls cancel(subId, undefined)', async () => {
+    apiMocks.subscriptionApi.buildCancelTransaction.mockResolvedValueOnce({ xdr: undefined })
+    apiMocks.subscriptionApi.cancel.mockResolvedValueOnce(makeSubscription({ id: 'sub_nosig', status: 'cancelled' }))
+
+    const { result } = renderHook(() => useCancelSubscription(), { wrapper })
+    await act(async () => {
+      await result.current.mutateAsync('sub_nosig')
+    })
+
+    expect(apiMocks.subscriptionApi.buildCancelTransaction).toHaveBeenCalledWith('sub_nosig')
+    expect(walletMocks.signTransaction).not.toHaveBeenCalled()
+    expect(apiMocks.subscriptionApi.cancel).toHaveBeenCalledWith('sub_nosig', undefined)
+  })
+
+  it('happy path with signature required: signs XDR and passes signedXdr to cancel', async () => {
+    apiMocks.subscriptionApi.buildCancelTransaction.mockResolvedValueOnce({ xdr: 'raw_xdr_payload' })
+    apiMocks.subscriptionApi.cancel.mockResolvedValueOnce(makeSubscription({ id: 'sub_sig', status: 'cancelled' }))
+
+    const { result } = renderHook(() => useCancelSubscription(), { wrapper })
+    await act(async () => {
+      await result.current.mutateAsync('sub_sig')
+    })
+
+    expect(apiMocks.subscriptionApi.buildCancelTransaction).toHaveBeenCalledWith('sub_sig')
+    expect(walletMocks.signTransaction).toHaveBeenCalledWith('raw_xdr_payload')
+    expect(apiMocks.subscriptionApi.cancel).toHaveBeenCalledWith('sub_sig', 'signed:raw_xdr_payload')
+  })
+
+  it('rejects and does not cancel if buildCancelTransaction throws/fails', async () => {
+    apiMocks.subscriptionApi.buildCancelTransaction.mockRejectedValueOnce(new Error('Network / 500 error'))
+
+    const { result } = renderHook(() => useCancelSubscription(), { wrapper })
+    await expect(result.current.mutateAsync('sub_err')).rejects.toThrow('Network / 500 error')
+
+    expect(walletMocks.signTransaction).not.toHaveBeenCalled()
+    expect(apiMocks.subscriptionApi.cancel).not.toHaveBeenCalled()
+  })
+
+  it('rejects and does not cancel if user rejects signing prompt', async () => {
+    apiMocks.subscriptionApi.buildCancelTransaction.mockResolvedValueOnce({ xdr: 'raw_xdr_payload' })
+    walletMocks.signTransaction.mockRejectedValueOnce(new Error('User declined to sign transaction'))
+
+    const { result } = renderHook(() => useCancelSubscription(), { wrapper })
+    await expect(result.current.mutateAsync('sub_reject')).rejects.toThrow('User declined to sign transaction')
+
+    expect(apiMocks.subscriptionApi.cancel).not.toHaveBeenCalled()
+  })
 })
 
 describe('useCancelSubscription + usePendingIds: concurrent cancellations (#52)', () => {

@@ -157,16 +157,13 @@ export function useCancelSubscription() {
     mutationFn: async (subscriptionId: string) => {
       // Some cancellations require an on-chain authorization (e.g. revoking a
       // pre-signed standing order); others are purely a backend-side flag
-      // flip. Try the build step, but proceed without a signature if the
-      // backend says none is needed.
+      // flip. If the backend returns an XDR to sign, sign it with the wallet.
+      // If the backend explicitly returns no XDR, proceed without a signature.
+      // Do NOT swallow errors from the build endpoint or from user signing rejection.
+      const built = await subscriptionApi.buildCancelTransaction(subscriptionId)
       let signedXdr: string | undefined
-      try {
-        const built = await subscriptionApi.buildCancelTransaction(subscriptionId)
-        if (built?.xdr) {
-          signedXdr = await signTransaction(built.xdr)
-        }
-      } catch {
-        signedXdr = undefined
+      if (built?.xdr) {
+        signedXdr = await signTransaction(built.xdr)
       }
       return subscriptionApi.cancel(subscriptionId, signedXdr)
     },
