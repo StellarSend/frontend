@@ -1,8 +1,10 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { BatchForm } from './BatchForm'
+import { calculateBatchTotal } from '@/lib/stellar'
 
-const VALID_ADDR = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'
+const VALID_ADDR_1 = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'
+const VALID_ADDR_2 = 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN'
 const assets = [{ code: 'XLM', name: 'Stellar Lumens' }]
 
 describe('BatchForm', () => {
@@ -11,7 +13,7 @@ describe('BatchForm', () => {
     render(<BatchForm onSubmit={onSubmit} supportedAssets={assets} />)
 
     fireEvent.change(screen.getByPlaceholderText('G... recipient address'), {
-      target: { value: VALID_ADDR },
+      target: { value: VALID_ADDR_1 },
     })
     fireEvent.change(screen.getByPlaceholderText('Amount'), {
       target: { value: '0' },
@@ -25,12 +27,12 @@ describe('BatchForm', () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
-  it('allows adding a second recipient row and submits with valid amounts', async () => {
+  it('allows adding a second recipient row and submits with valid amounts and distinct addresses', async () => {
     const onSubmit = vi.fn()
     render(<BatchForm onSubmit={onSubmit} supportedAssets={assets} />)
 
     fireEvent.change(screen.getByPlaceholderText('G... recipient address'), {
-      target: { value: VALID_ADDR },
+      target: { value: VALID_ADDR_1 },
     })
     fireEvent.change(screen.getByPlaceholderText('Amount'), {
       target: { value: '10' },
@@ -42,7 +44,7 @@ describe('BatchForm', () => {
     const amounts = screen.getAllByPlaceholderText('Amount')
     expect(addresses).toHaveLength(2)
 
-    fireEvent.change(addresses[1], { target: { value: VALID_ADDR } })
+    fireEvent.change(addresses[1], { target: { value: VALID_ADDR_2 } })
     fireEvent.change(amounts[1], { target: { value: '5' } })
 
     await waitFor(() => {
@@ -53,5 +55,65 @@ describe('BatchForm', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
     expect(onSubmit.mock.calls[0][0].recipients).toHaveLength(2)
+  })
+
+  it('flags duplicate recipient address and disables submit', async () => {
+    const onSubmit = vi.fn()
+    render(<BatchForm onSubmit={onSubmit} supportedAssets={assets} />)
+
+    fireEvent.change(screen.getByPlaceholderText('G... recipient address'), {
+      target: { value: VALID_ADDR_1 },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Amount'), {
+      target: { value: '10' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /add recipient/i }))
+
+    const addresses = screen.getAllByPlaceholderText('G... recipient address')
+    const amounts = screen.getAllByPlaceholderText('Amount')
+
+    fireEvent.change(addresses[1], { target: { value: VALID_ADDR_1 } })
+    fireEvent.change(amounts[1], { target: { value: '5' } })
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/duplicate recipient address in batch/i),
+      ).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /review batch/i })).toBeDisabled()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /review batch/i }))
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('displays warning when recipient address matches connected wallet (self-send)', async () => {
+    const onSubmit = vi.fn()
+    render(
+      <BatchForm
+        onSubmit={onSubmit}
+        supportedAssets={assets}
+        senderPublicKey={VALID_ADDR_1}
+      />,
+    )
+
+    fireEvent.change(screen.getByPlaceholderText('G... recipient address'), {
+      target: { value: VALID_ADDR_1 },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Amount'), {
+      target: { value: '10' },
+    })
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/match your connected wallet address/i),
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('calculates total using integer stroop arithmetic without floating-point drift across 100 small rows', () => {
+    const recipients = Array(100).fill({ amount: '0.0000001' })
+    const total = calculateBatchTotal(recipients)
+    expect(total.toFixed(7)).toBe('0.0000100')
   })
 })
