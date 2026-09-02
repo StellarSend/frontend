@@ -9,7 +9,7 @@ import { useBatchPayment } from '@/hooks/useBatchPayment'
 import { useWallet } from '@/hooks/useWallet'
 
 export default function BatchSend() {
-  const { isConnected, network } = useWallet()
+  const { isConnected, network, publicKey } = useWallet()
   const {
     state,
     reviewBatch,
@@ -99,6 +99,7 @@ export default function BatchSend() {
               onSubmit={reviewBatch}
               supportedAssets={supportedAssets}
               defaultValues={state.formValues ?? undefined}
+              senderPublicKey={publicKey}
             />
           )}
         </div>

@@ -2,13 +2,12 @@ import React from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Layers, Plus, Trash2, ChevronRight } from 'lucide-react'
+import { Layers, Plus, Trash2, ChevronRight, AlertTriangle } from 'lucide-react'
 import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
-import { isValidStellarAddress } from '@/lib/stellar'
+import { isValidStellarAddress, calculateBatchTotal, MAX_BATCH_RECIPIENTS } from '@/lib/stellar'
 import type { BatchPaymentFormValues } from '@/types'
-import { MAX_BATCH_RECIPIENTS } from '@/lib/stellar'
 
 // ─── Validation schema ────────────────────────────────────────────────────────
 
@@ -24,19 +23,37 @@ const recipientSchema = z.object({
   memo: z.string().max(28).optional().default(''),
 })
 
-const batchSchema = z.object({
-  assetCode: z.string().min(1),
-  recipients: z
-    .array(recipientSchema)
-    .min(1, 'Add at least one recipient')
-    .max(MAX_BATCH_RECIPIENTS, `Batch supports at most ${MAX_BATCH_RECIPIENTS} recipients`),
-})
+const batchSchema = z
+  .object({
+    assetCode: z.string().min(1),
+    recipients: z
+      .array(recipientSchema)
+      .min(1, 'Add at least one recipient')
+      .max(MAX_BATCH_RECIPIENTS, `Batch supports at most ${MAX_BATCH_RECIPIENTS} recipients`),
+  })
+  .superRefine((data, ctx) => {
+    const seen = new Map<string, number>()
+    data.recipients.forEach((r, idx) => {
+      const addr = r.destinationAddress.trim()
+      if (!addr) return
+      if (seen.has(addr)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Duplicate recipient address in batch',
+          path: ['recipients', idx, 'destinationAddress'],
+        })
+      } else {
+        seen.set(addr, idx)
+      }
+    })
+  })
 
 interface BatchFormProps {
   onSubmit: (values: BatchPaymentFormValues) => void
   isLoading?: boolean
   supportedAssets: { code: string; name: string }[]
   defaultValues?: Partial<BatchPaymentFormValues>
+  senderPublicKey?: string | null
 }
 
 export function BatchForm({
@@ -44,6 +61,7 @@ export function BatchForm({
   isLoading = false,
   supportedAssets,
   defaultValues,
+  senderPublicKey,
 }: BatchFormProps) {
   const {
     register,
@@ -65,7 +83,13 @@ export function BatchForm({
   const recipients = watch('recipients')
   const assetCode = watch('assetCode')
 
-  const total = recipients.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0)
+  const total = calculateBatchTotal(recipients)
+  const hasSelfSend =
+    senderPublicKey &&
+    recipients.some(
+      (r) => r.destinationAddress.trim().toUpperCase() === senderPublicKey.trim().toUpperCase(),
+    )
+
   const assetOptions = supportedAssets.map((a) => ({ value: a.code, label: a.code }))
 
   return (
@@ -117,6 +141,13 @@ export function BatchForm({
 
           {typeof errors.recipients?.message === 'string' && (
             <p className="text-xs text-danger-400">{errors.recipients.message}</p>
+          )}
+
+          {hasSelfSend && (
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-warning-500/10 border border-warning-500/20 text-warning-300 text-xs">
+              <AlertTriangle size={14} className="shrink-0 text-warning-400" />
+              <span>One or more recipients match your connected wallet address (self-send).</span>
+            </div>
           )}
 
           <Button

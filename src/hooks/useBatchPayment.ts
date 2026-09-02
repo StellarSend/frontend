@@ -1,7 +1,11 @@
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { batchPaymentApi } from '@/lib/api'
-import { buildBatchPaymentTransaction, submitTransaction } from '@/lib/stellar'
+import {
+  buildBatchPaymentTransaction,
+  submitTransaction,
+  calculateBatchTotal,
+} from '@/lib/stellar'
 import { useWallet } from './useWallet'
 import { useSupportedAssets } from './useSendPayment'
 import { useInvalidateTransactions } from './useTransactions'
@@ -35,7 +39,7 @@ export function useBatchPayment() {
   })
 
   const totalAmount = state.formValues
-    ? state.formValues.recipients.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0)
+    ? calculateBatchTotal(state.formValues.recipients)
     : 0
 
   const mutation = useMutation<BatchPaymentResult, Error, void>({

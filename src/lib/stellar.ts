@@ -337,6 +337,51 @@ export function truncateAddress(address: string, chars = 6): string {
   return `${address.slice(0, chars)}...${address.slice(-chars)}`
 }
 
+// ─── Stroops conversion ───────────────────────────────────────────────────────
+
+export function parseAmountToStroops(amount: string | number): bigint {
+  const str = String(amount ?? '').trim()
+  if (!str) return 0n
+  const parts = str.split('.')
+  if (parts.length === 1) {
+    try {
+      return BigInt(parts[0] || '0') * 10_000_000n
+    } catch {
+      return 0n
+    }
+  }
+  if (parts.length === 2) {
+    try {
+      const whole = BigInt(parts[0] || '0') * 10_000_000n
+      const fractionPart = parts[1].slice(0, 7).padEnd(7, '0')
+      const frac = BigInt(fractionPart)
+      return whole + frac
+    } catch {
+      return 0n
+    }
+  }
+  return 0n
+}
+
+export function xlmToStroops(xlm: number | string): bigint {
+  return parseAmountToStroops(xlm)
+}
+
+export function stroopsToXlm(stroops: bigint): number {
+  return Number(stroops) / 10_000_000
+}
+
+export function calculateBatchTotal(recipients: { amount?: string | number }[]): number {
+  const totalStroops = recipients.reduce((sum, r) => {
+    try {
+      return sum + parseAmountToStroops(r.amount ?? '')
+    } catch {
+      return sum
+    }
+  }, 0n)
+  return stroopsToXlm(totalStroops)
+}
+
 // ─── Format amounts ───────────────────────────────────────────────────────────
 
 export function formatAmount(
