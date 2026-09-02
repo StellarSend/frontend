@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from './Button'
+import { FocusTrap } from '@/components/common/FocusTrap'
 
 interface ModalProps {
   isOpen: boolean
@@ -76,47 +77,52 @@ export function Modal({
         'animate-fade-in',
       )}
     >
-      <div
+      <FocusTrap
+        active={isOpen}
+        restoreFocus={true}
         className={cn(
           'relative w-full bg-navy-800 border border-navy-600/50 rounded-2xl shadow-2xl',
           'animate-slide-up',
           sizeClasses[size],
           className,
         )}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={title ? 'modal-title' : undefined}
       >
-        {/* Header */}
-        {(title || showClose) && (
-          <div className="flex items-start justify-between p-6 pb-0">
-            <div>
-              {title && (
-                <h2 id="modal-title" className="text-lg font-semibold text-white">
-                  {title}
-                </h2>
-              )}
-              {description && (
-                <p className="text-sm text-slate-400 mt-1">{description}</p>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? 'modal-title' : undefined}
+        >
+          {/* Header */}
+          {(title || showClose) && (
+            <div className="flex items-start justify-between p-6 pb-0">
+              <div>
+                {title && (
+                  <h2 id="modal-title" className="text-lg font-semibold text-white">
+                    {title}
+                  </h2>
+                )}
+                {description && (
+                  <p className="text-sm text-slate-400 mt-1">{description}</p>
+                )}
+              </div>
+              {showClose && onClose && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={onClose}
+                  className="ml-4 shrink-0 -mt-1"
+                  aria-label="Close"
+                >
+                  <X size={16} />
+                </Button>
               )}
             </div>
-            {showClose && onClose && (
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={onClose}
-                className="ml-4 shrink-0 -mt-1"
-                aria-label="Close"
-              >
-                <X size={16} />
-              </Button>
-            )}
-          </div>
-        )}
+          )}
 
-        {/* Body */}
-        <div className="p-6">{children}</div>
-      </div>
+          {/* Body */}
+          <div className="p-6">{children}</div>
+        </div>
+      </FocusTrap>
     </div>,
     document.body,
   )
