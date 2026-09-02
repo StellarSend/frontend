@@ -10,10 +10,10 @@ describe('BatchForm', () => {
     const onSubmit = vi.fn()
     render(<BatchForm onSubmit={onSubmit} supportedAssets={assets} />)
 
-    fireEvent.change(screen.getByPlaceholderText('G... recipient address'), {
+    fireEvent.change(screen.getByRole('textbox', { name: /recipient 1 address/i }), {
       target: { value: VALID_ADDR },
     })
-    fireEvent.change(screen.getByPlaceholderText('Amount'), {
+    fireEvent.change(screen.getByRole('spinbutton', { name: /recipient 1 amount/i }), {
       target: { value: '0' },
     })
 
@@ -29,21 +29,24 @@ describe('BatchForm', () => {
     const onSubmit = vi.fn()
     render(<BatchForm onSubmit={onSubmit} supportedAssets={assets} />)
 
-    fireEvent.change(screen.getByPlaceholderText('G... recipient address'), {
+    fireEvent.change(screen.getByRole('textbox', { name: /recipient 1 address/i }), {
       target: { value: VALID_ADDR },
     })
-    fireEvent.change(screen.getByPlaceholderText('Amount'), {
+    fireEvent.change(screen.getByRole('spinbutton', { name: /recipient 1 amount/i }), {
       target: { value: '10' },
     })
 
     fireEvent.click(screen.getByRole('button', { name: /add recipient/i }))
 
-    const addresses = screen.getAllByPlaceholderText('G... recipient address')
-    const amounts = screen.getAllByPlaceholderText('Amount')
-    expect(addresses).toHaveLength(2)
+    expect(screen.getByRole('textbox', { name: /recipient 2 address/i })).toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: /recipient 2 amount/i })).toBeInTheDocument()
 
-    fireEvent.change(addresses[1], { target: { value: VALID_ADDR } })
-    fireEvent.change(amounts[1], { target: { value: '5' } })
+    fireEvent.change(screen.getByRole('textbox', { name: /recipient 2 address/i }), {
+      target: { value: VALID_ADDR },
+    })
+    fireEvent.change(screen.getByRole('spinbutton', { name: /recipient 2 amount/i }), {
+      target: { value: '5' },
+    })
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /review batch/i })).not.toBeDisabled()
