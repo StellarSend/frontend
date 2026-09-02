@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
-import { batchPaymentApi } from '@/lib/api'
+import { batchPaymentApi, isNetworkLayerError } from '@/lib/api'
 import { buildBatchPaymentTransaction, submitTransaction } from '@/lib/stellar'
 import { useWallet } from './useWallet'
 import { useSupportedAssets } from './useSendPayment'
@@ -68,7 +68,23 @@ export function useBatchPayment() {
           recipients: values.recipients,
           signedXdr,
         })
-      } catch {
+      } catch (err) {
+        // Only fall back to a direct Horizon submission when the error is a
+        // pure network-layer failure (no HTTP response arrived at all).  In
+        // that case the backend certainly never received the payload, so
+        // resubmitting directly is safe.
+        //
+        // Errors that *did* receive an HTTP response (4xx validation, 5xx
+        // server fault, 502 gateway) are re-thrown unchanged:
+        //   - On a 4xx the backend explicitly rejected the payload; pushing
+        //     the XDR straight to Horizon would bypass that validation.
+        //   - On a 5xx the backend *may* have already broadcast the
+        //     transaction; blind resubmission risks a tx_bad_seq confusion
+        //     or double-spend on a fresh retry.
+        if (!isNetworkLayerError(err)) {
+          throw err
+        }
+
         const { hash } = await submitTransaction(signedXdr, network)
         return {
           batchId: hash,

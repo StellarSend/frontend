@@ -38,13 +38,33 @@ const BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8
 export class ApiRequestError extends Error implements ApiError {
   code: string
   details?: Record<string, string[]>
+  /** HTTP status code from the server response, absent for pure network errors. */
+  httpStatus?: number
 
-  constructor(apiError: ApiError) {
+  constructor(apiError: ApiError, httpStatus?: number) {
     super(apiError.message)
     this.name = 'ApiRequestError'
     this.code = apiError.code
     this.details = apiError.details
+    this.httpStatus = httpStatus
   }
+}
+
+/**
+ * Returns true only for pure network-layer failures — i.e. the request was
+ * sent but no HTTP response came back (connection refused, ECONNRESET,
+ * request timeout before any response headers arrived, etc.).  This is the
+ * only class of error where falling back to a direct Horizon submission can
+ * be justified: the backend never received the payload, so it certainly
+ * hasn't submitted the transaction on our behalf.
+ *
+ * Errors that *did* receive an HTTP response (4xx validation, 5xx server
+ * fault, 502 gateway) must NOT trigger a fallback — the backend may have
+ * already broadcast the transaction, and bypassing its validation on a
+ * 4xx would push a payload it explicitly rejected.
+ */
+export function isNetworkLayerError(error: unknown): boolean {
+  return error instanceof ApiRequestError && error.httpStatus === undefined
 }
 
 /**
@@ -63,11 +83,14 @@ export function normalizeApiError(error: AxiosError<ApiError>): ApiRequestError 
     error.response?.data?.message || error.message || 'An unexpected error occurred'
   const code =
     error.response?.data?.code || (error.response?.status === 404 ? 'NOT_FOUND' : 'UNKNOWN_ERROR')
-  return new ApiRequestError({
-    code,
-    message,
-    details: error.response?.data?.details,
-  })
+  return new ApiRequestError(
+    {
+      code,
+      message,
+      details: error.response?.data?.details,
+    },
+    error.response?.status,
+  )
 }
 
 // ─── Axios instance ───────────────────────────────────────────────────────────
