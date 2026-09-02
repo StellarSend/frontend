@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { AxiosError, AxiosHeaders } from 'axios'
-import { horizonUrl, fetchAccountFromHorizon, normalizeApiError, ApiRequestError } from './api'
+import {
+  horizonUrl,
+  fetchAccountFromHorizon,
+  fetchTransactionsFromHorizon,
+  normalizeApiError,
+  ApiRequestError,
+} from './api'
 import type { ApiError } from '@/types'
 
 function makeAxiosError(status: number | undefined, data?: ApiError, message = 'Request failed') {
@@ -176,5 +182,115 @@ describe('fetchAccountFromHorizon', () => {
     expect(account.balances[0].asset.code).toBe('XLM')
     expect(account.balances[1].asset.code).toBe('USDC')
     expect(account.balances[1].asset.issuer).toBe('GISSUER')
+  })
+})
+
+describe('fetchTransactionsFromHorizon', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('queries /payments endpoint on Horizon and maps payment amounts and counterparties', async () => {
+    const OTHER_USER = 'GDESTINATION12345678901234567890123456789012345678901234'
+    const SENDER_USER = 'GSENDER12345678901234567890123456789012345678901234567890'
+
+    mockFetchOnce({
+      _embedded: {
+        records: [
+          {
+            id: 'op-1',
+            transaction_hash: 'tx-hash-1',
+            created_at: '2026-08-20T10:00:00Z',
+            type: 'payment',
+            transaction_successful: true,
+            from: PUBLIC_KEY,
+            to: OTHER_USER,
+            amount: '25.5000000',
+            asset_type: 'credit_alphanum4',
+            asset_code: 'USDC',
+            asset_issuer: 'GISSUER',
+            fee_charged: '100',
+            ledger: 500,
+            memo: 'Payment 1',
+            paging_token: 'cursor-1',
+          },
+          {
+            id: 'op-2',
+            transaction_hash: 'tx-hash-2',
+            created_at: '2026-08-20T11:00:00Z',
+            type: 'payment',
+            transaction_successful: true,
+            from: SENDER_USER,
+            to: PUBLIC_KEY,
+            amount: '100.0000000',
+            asset_type: 'native',
+            fee_charged: '100',
+            ledger: 501,
+            paging_token: 'cursor-2',
+          },
+          {
+            id: 'op-3',
+            transaction_hash: 'tx-hash-3',
+            created_at: '2026-08-20T12:00:00Z',
+            type: 'create_account',
+            transaction_successful: true,
+            funder: PUBLIC_KEY,
+            account: OTHER_USER,
+            starting_balance: '10.0000000',
+            fee_charged: '100',
+            ledger: 502,
+            paging_token: 'cursor-3',
+          },
+        ],
+      },
+    })
+
+    const page = await fetchTransactionsFromHorizon(PUBLIC_KEY, 'testnet', 20)
+
+    expect(page.transactions).toHaveLength(3)
+
+    // Sent USDC payment: counterparty is destination (OTHER_USER), direction is sent
+    expect(page.transactions[0]).toMatchObject({
+      id: 'op-1',
+      hash: 'tx-hash-1',
+      type: 'payment',
+      status: 'success',
+      sourceAccount: PUBLIC_KEY,
+      destinationAccount: OTHER_USER,
+      amount: '25.5000000',
+      assetCode: 'USDC',
+      assetIssuer: 'GISSUER',
+      direction: 'sent',
+      counterparty: OTHER_USER,
+    })
+
+    // Received native XLM payment: counterparty is sender (SENDER_USER), direction is received
+    expect(page.transactions[1]).toMatchObject({
+      id: 'op-2',
+      hash: 'tx-hash-2',
+      type: 'payment',
+      status: 'success',
+      sourceAccount: SENDER_USER,
+      destinationAccount: PUBLIC_KEY,
+      amount: '100.0000000',
+      assetCode: 'XLM',
+      assetIssuer: null,
+      direction: 'received',
+      counterparty: SENDER_USER,
+    })
+
+    // Created account with starting balance: mapped as create_account with starting_balance
+    expect(page.transactions[2]).toMatchObject({
+      id: 'op-3',
+      hash: 'tx-hash-3',
+      type: 'create_account',
+      status: 'success',
+      sourceAccount: PUBLIC_KEY,
+      destinationAccount: OTHER_USER,
+      amount: '10.0000000',
+      assetCode: 'XLM',
+      direction: 'sent',
+      counterparty: OTHER_USER,
+    })
   })
 })
