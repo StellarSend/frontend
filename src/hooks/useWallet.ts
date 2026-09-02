@@ -1,4 +1,5 @@
 import { useWalletContext } from '@/context/WalletContext'
+import { USDC_MAINNET, USDC_TESTNET } from '@/types'
 import type { WalletState } from '@/types'
 
 /**
@@ -14,12 +15,15 @@ export function useWallet() {
   const isConnecting = wallet.status === 'connecting'
   const hasError = wallet.status === 'error'
 
+  const expectedUsdcIssuer =
+    wallet.network === 'testnet' ? USDC_TESTNET.issuer : USDC_MAINNET.issuer
+
   const xlmBalance = wallet.account?.balances.find(
-    (b) => b.asset.code === 'XLM',
+    (b) => b.asset.code === 'XLM' && b.asset.issuer === null,
   )?.balance ?? null
 
   const usdcBalance = wallet.account?.balances.find(
-    (b) => b.asset.code === 'USDC',
+    (b) => b.asset.code === 'USDC' && b.asset.issuer === expectedUsdcIssuer,
   )?.balance ?? null
 
   return {
