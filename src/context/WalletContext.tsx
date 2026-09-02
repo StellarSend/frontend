@@ -152,10 +152,21 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     refreshAccount()
 
-    const interval = parseInt(
-      localStorage.getItem('stellarsend_refresh_interval') || '30',
-      10,
-    )
+    let interval = 30
+    try {
+      const rawSettings = localStorage.getItem('stellarsend_settings')
+      if (rawSettings) {
+        const parsed = JSON.parse(rawSettings)
+        if (typeof parsed.autoRefreshInterval === 'number' && parsed.autoRefreshInterval > 0) {
+          interval = parsed.autoRefreshInterval
+        }
+      } else {
+        const flat = localStorage.getItem('stellarsend_refresh_interval')
+        if (flat) interval = parseInt(flat, 10) || 30
+      }
+    } catch {
+      interval = 30
+    }
     refreshTimerRef.current = setInterval(refreshAccount, interval * 1_000)
 
     return () => {
