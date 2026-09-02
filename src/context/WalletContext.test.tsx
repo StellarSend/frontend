@@ -112,6 +112,33 @@ describe('setNetwork', () => {
 // Uses real timers rather than vi.useFakeTimers(): advancing a faked clock
 // deadlocked React's own effect scheduling in this setup, whereas the actual
 // WALLET_POLL_INTERVAL_MS (3s) is short enough to just wait out for real.
+describe('signTransaction', () => {
+  it('calls freighter signTransaction with SDK-backed getNetworkPassphrase for testnet and mainnet', async () => {
+    const { result } = await connectWallet(PUBLIC_KEY_A)
+
+    freighterMocks.signTransaction.mockResolvedValue('signed-xdr-testnet')
+
+    const signedTestnet = await result.current.signTransaction('unsigned-xdr-1')
+    expect(signedTestnet).toBe('signed-xdr-testnet')
+    expect(freighterMocks.signTransaction).toHaveBeenCalledWith('unsigned-xdr-1', {
+      networkPassphrase: 'Test SDF Network ; September 2015',
+      accountToSign: PUBLIC_KEY_A,
+    })
+
+    act(() => {
+      result.current.setNetwork('mainnet')
+    })
+
+    freighterMocks.signTransaction.mockResolvedValue('signed-xdr-mainnet')
+    const signedMainnet = await result.current.signTransaction('unsigned-xdr-2')
+    expect(signedMainnet).toBe('signed-xdr-mainnet')
+    expect(freighterMocks.signTransaction).toHaveBeenCalledWith('unsigned-xdr-2', {
+      networkPassphrase: 'Public Global Stellar Network ; September 2015',
+      accountToSign: PUBLIC_KEY_A,
+    })
+  })
+})
+
 describe('Freighter account-drift polling', () => {
   it('transitions to a "please reconnect" state when Freighter reports a different public key', async () => {
     const { result } = await connectWallet(PUBLIC_KEY_A)
