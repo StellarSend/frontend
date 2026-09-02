@@ -7,6 +7,7 @@ import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { isValidStellarAddress } from '@/lib/stellar'
+import { MAX_MEMO_BYTES, getUtf8ByteLength } from '@/utils/validation'
 import type { SubscriptionFormValues } from '@/types'
 
 // ─── Validation schema ────────────────────────────────────────────────────────
@@ -28,7 +29,11 @@ const subscriptionSchema = z.object({
     .string()
     .min(1, 'Start date is required')
     .refine((v) => v >= todayISODate(), 'Start date cannot be in the past'),
-  memo: z.string().max(28, 'Memo must be ≤ 28 characters').optional().default(''),
+  memo: z
+    .string()
+    .refine((m) => getUtf8ByteLength(m) <= MAX_MEMO_BYTES, `Memo must be ≤ ${MAX_MEMO_BYTES} bytes`)
+    .optional()
+    .default(''),
 })
 
 interface SubscriptionFormProps {

@@ -6,6 +6,7 @@ import { FileText, ChevronRight } from 'lucide-react'
 import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
+import { MAX_MEMO_BYTES, getUtf8ByteLength } from '@/utils/validation'
 import type { PaymentRequestFormValues } from '@/types'
 
 const requestSchema = z.object({
@@ -14,7 +15,11 @@ const requestSchema = z.object({
     .string()
     .min(1, 'Amount is required')
     .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, 'Amount must be a positive number'),
-  memo: z.string().max(28, 'Memo must be ≤ 28 characters').optional().default(''),
+  memo: z
+    .string()
+    .refine((m) => getUtf8ByteLength(m) <= MAX_MEMO_BYTES, `Memo must be ≤ ${MAX_MEMO_BYTES} bytes`)
+    .optional()
+    .default(''),
   expiresInHours: z
     .string()
     .optional()

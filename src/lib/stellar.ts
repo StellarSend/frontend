@@ -10,6 +10,7 @@ import {
   BASE_FEE,
 } from '@stellar/stellar-sdk'
 import type { Network, StellarAsset, Quote, PathHop } from '@/types'
+import { truncateUtf8Bytes } from '@/utils/validation'
 
 // ─── Horizon servers ──────────────────────────────────────────────────────────
 
@@ -114,7 +115,7 @@ export async function buildPaymentTransaction(
       if (/^\d+$/.test(trimmed) && BigInt(trimmed) <= BigInt('18446744073709551615')) {
         builder.addMemo(Memo.id(trimmed))
       } else {
-        builder.addMemo(Memo.text(trimmed.slice(0, 28)))
+        builder.addMemo(Memo.text(truncateUtf8Bytes(trimmed)))
       }
     }
   }
@@ -185,7 +186,7 @@ export async function buildPathPaymentTransaction(
     if (/^\d+$/.test(trimmed) && BigInt(trimmed) <= BigInt('18446744073709551615')) {
       builder.addMemo(Memo.id(trimmed))
     } else {
-      builder.addMemo(Memo.text(trimmed.slice(0, 28)))
+      builder.addMemo(Memo.text(truncateUtf8Bytes(trimmed)))
     }
   }
 
@@ -296,7 +297,7 @@ export async function buildBatchPaymentTransaction(
     if (/^\d+$/.test(trimmed) && BigInt(trimmed) <= BigInt('18446744073709551615')) {
       builder.addMemo(Memo.id(trimmed))
     } else {
-      builder.addMemo(Memo.text(trimmed.slice(0, 28)))
+      builder.addMemo(Memo.text(truncateUtf8Bytes(trimmed)))
     }
   }
 

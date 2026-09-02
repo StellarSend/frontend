@@ -13,6 +13,7 @@ import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { isValidStellarAddress } from '@/lib/stellar'
+import { MAX_MEMO_BYTES, getUtf8ByteLength } from '@/utils/validation'
 import type { SendFormValues } from '@/types'
 
 // ─── Validation schema ────────────────────────────────────────────────────────
@@ -37,7 +38,11 @@ const sendSchema = z.object({
   destinationAssetCode: z.string().min(1),
   amountType: z.enum(['send', 'receive']),
   usePathPayment: z.boolean(),
-  memo: z.string().max(28, 'Memo must be ≤ 28 characters').optional().default(''),
+  memo: z
+    .string()
+    .refine((m) => getUtf8ByteLength(m) <= MAX_MEMO_BYTES, `Memo must be ≤ ${MAX_MEMO_BYTES} bytes`)
+    .optional()
+    .default(''),
 })
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -200,7 +205,7 @@ export function SendForm({
         <Input
           label="Memo (optional)"
           placeholder="Payment reference, ID, or note"
-          hint="Up to 28 characters. Required by some exchanges."
+          hint={`Up to ${MAX_MEMO_BYTES} bytes. Required by some exchanges.`}
           error={errors.memo?.message}
           fullWidth
           {...register('memo')}
