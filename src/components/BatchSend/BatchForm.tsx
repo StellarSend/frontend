@@ -7,6 +7,7 @@ import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { isValidStellarAddress } from '@/lib/stellar'
+import { MAX_MEMO_BYTES, getUtf8ByteLength } from '@/utils/validation'
 import type { BatchPaymentFormValues } from '@/types'
 import { MAX_BATCH_RECIPIENTS } from '@/lib/stellar'
 
@@ -21,7 +22,11 @@ const recipientSchema = z.object({
     .string()
     .min(1, 'Required')
     .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, 'Must be > 0'),
-  memo: z.string().max(28).optional().default(''),
+  memo: z
+    .string()
+    .refine((m) => getUtf8ByteLength(m) <= MAX_MEMO_BYTES, `Memo must be ≤ ${MAX_MEMO_BYTES} bytes`)
+    .optional()
+    .default(''),
 })
 
 const batchSchema = z.object({
