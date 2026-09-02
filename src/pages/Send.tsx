@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { useSendPayment } from '@/hooks/useSendPayment'
 import { useWallet } from '@/hooks/useWallet'
+import { useSettings } from '@/hooks/useSettings'
 
 // ─── Network info sidebar ─────────────────────────────────────────────────────
 
@@ -73,6 +74,7 @@ function SendInfo() {
 
 export default function Send() {
   const { isConnected, network } = useWallet()
+  const { settings } = useSettings()
   const {
     state,
     requestQuote,
@@ -142,7 +144,9 @@ export default function Send() {
               onSubmit={requestQuote}
               isLoading={isQuoting}
               supportedAssets={supportedAssets}
-              defaultValues={state.formValues ?? undefined}
+              defaultValues={
+                state.formValues ?? (settings.defaultMemo ? { memo: settings.defaultMemo } : undefined)
+              }
             />
           )}
 

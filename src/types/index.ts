@@ -135,6 +135,7 @@ export interface QuoteRequest {
   amountType: 'send' | 'receive'
   usePathPayment: boolean
   memo?: string
+  slippageTolerance?: string
 }
 
 export interface PathHop {

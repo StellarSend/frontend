@@ -6,6 +6,7 @@ import {
   submitTransaction,
 } from '@/lib/stellar'
 import { useWallet } from './useWallet'
+import { useSettings } from './useSettings'
 import { useInvalidateTransactions } from './useTransactions'
 import type {
   Quote,
@@ -46,6 +47,7 @@ export interface SendPaymentState {
 
 export function useSendPayment() {
   const { publicKey, network, signTransaction, isConnected, refreshAccount } = useWallet()
+  const { settings } = useSettings()
   const invalidateTxs = useInvalidateTransactions()
 
   const [state, setState] = useState<SendPaymentState>({
@@ -154,9 +156,10 @@ export function useSendPayment() {
         amountType: values.amountType,
         usePathPayment: values.usePathPayment,
         memo: values.memo || undefined,
+        slippageTolerance: settings.slippageTolerance || undefined,
       })
     },
-    [isConnected, publicKey, supportedAssets, quoteMutation],
+    [isConnected, publicKey, supportedAssets, quoteMutation, settings.slippageTolerance],
   )
 
   const confirmSend = useCallback(() => {

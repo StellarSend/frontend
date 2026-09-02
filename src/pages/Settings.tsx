@@ -1,3 +1,4 @@
+import { useSettings } from '@/hooks/useSettings'
 import React, { useState, useEffect } from 'react'
 import {
   Globe,
@@ -21,27 +22,6 @@ import { truncateAddress, formatXLM } from '@/lib/stellar'
 import { copyToClipboard } from '@/lib/utils'
 import type { Network, AppSettings } from '@/types'
 import { DEFAULT_SETTINGS } from '@/types'
-
-function useSettings() {
-  const [settings, setSettings] = useState<AppSettings>(() => {
-    try {
-      const saved = localStorage.getItem('stellarsend_settings')
-      if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) }
-    } catch {
-      // corrupted or unavailable localStorage — fall back to defaults
-    }
-    return DEFAULT_SETTINGS
-  })
-
-  const save = (next: AppSettings) => {
-    setSettings(next)
-    localStorage.setItem('stellarsend_settings', JSON.stringify(next))
-  }
-
-  const reset = () => save(DEFAULT_SETTINGS)
-
-  return { settings, save, reset }
-}
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 

@@ -3,14 +3,16 @@ import { Outlet } from 'react-router-dom'
 import { Navbar } from './Navbar'
 import { Sidebar } from './Sidebar'
 import { useWallet } from '@/hooks/useWallet'
+import { useSettings } from '@/hooks/useSettings'
 
 export function Layout() {
   const { network } = useWallet()
+  const { settings } = useSettings()
 
   return (
     <div className="min-h-screen bg-navy-950 text-white flex flex-col">
       {/* Testnet banner */}
-      {network === 'testnet' && (
+      {network === 'testnet' && settings.showTestnetWarning && (
         <div className="bg-warning-500/15 border-b border-warning-500/20 px-4 py-1.5 text-center">
           <p className="text-xs text-warning-400 font-medium">
             You are on <strong>Testnet</strong> — transactions use test assets only. Switch to
