@@ -5,11 +5,11 @@ interface Props {
 export function FormField({ label, error, hint, required, children }: Props) {
   return (
     <div className="space-y-1">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label className="block text-sm font-medium text-white">
         {label}{required && <span className="text-red-500 ml-1">*</span>}
       </label>
       {children}
-      {hint && !error && <p className="text-xs text-gray-400">{hint}</p>}
+      {hint && !error && <p className="text-xs text-slate-400">{hint}</p>}
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   )
