@@ -18,38 +18,14 @@ import { Card as CardComp } from '@/components/ui/Card'
 import { TrendingUp, TrendingDown, DollarSign, Activity } from 'lucide-react'
 import { formatAmount } from '@/lib/stellar'
 
+import { getHistoryChartData } from '@/utils/chart'
+
 // ─── Chart panel ─────────────────────────────────────────────────────────────
 
 function HistoryChart() {
   const { data } = useRecentTransactions(100)
   const transactions = data?.transactions ?? []
-
-  const days: Record<string, { sent: number; received: number; fees: number }> = {}
-  const now = Date.now()
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(now - i * 86_400_000)
-    const key = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    days[key] = { sent: 0, received: 0, fees: 0 }
-  }
-
-  transactions.forEach((tx) => {
-    const key = new Date(tx.createdAt).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    })
-    if (days[key]) {
-      if (tx.direction === 'sent') days[key].sent += parseFloat(tx.amount || '0')
-      else days[key].received += parseFloat(tx.amount || '0')
-      days[key].fees += parseFloat(tx.fee || '0') / 10_000_000
-    }
-  })
-
-  const chartData = Object.entries(days).map(([date, v]) => ({
-    date,
-    Sent: +v.sent.toFixed(4),
-    Received: +v.received.toFixed(4),
-    Fees: +v.fees.toFixed(7),
-  }))
+  const chartData = getHistoryChartData(transactions)
 
   return (
     <CardComp className="mb-5">
