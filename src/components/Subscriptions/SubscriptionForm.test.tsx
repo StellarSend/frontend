@@ -52,4 +52,14 @@ describe('SubscriptionForm', () => {
       interval: 'monthly',
     })
   })
+
+  it('uses local date formatting so today is selectable as start date', () => {
+    render(<SubscriptionForm onSubmit={vi.fn()} supportedAssets={assets} />)
+    const startDateInput = screen.getByLabelText(/start date/i) as HTMLInputElement
+    const d = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const expectedLocalToday = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    expect(startDateInput.value).toBe(expectedLocalToday)
+    expect(startDateInput.min).toBe(expectedLocalToday)
+  })
 })
