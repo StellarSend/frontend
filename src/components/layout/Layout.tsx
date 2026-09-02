@@ -2,6 +2,7 @@ import React from 'react'
 import { Outlet } from 'react-router-dom'
 import { Navbar } from './Navbar'
 import { Sidebar } from './Sidebar'
+import { SkipLink } from '@/components/common/SkipLink'
 import { useWallet } from '@/hooks/useWallet'
 
 export function Layout() {
@@ -9,6 +10,8 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-navy-950 text-white flex flex-col">
+      <SkipLink />
+
       {/* Testnet banner */}
       {network === 'testnet' && (
         <div className="bg-warning-500/15 border-b border-warning-500/20 px-4 py-1.5 text-center">
@@ -24,7 +27,7 @@ export function Layout() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
 
-        <main className="flex-1 overflow-y-auto">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto outline-none">
           <div className="max-w-5xl mx-auto px-4 md:px-6 py-6">
             <Outlet />
           </div>
