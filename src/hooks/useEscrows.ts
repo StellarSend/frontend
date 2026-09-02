@@ -20,6 +20,7 @@ export function useEscrowList() {
     queryFn: () => escrowApi.list(publicKey!),
     enabled: isConnected && !!publicKey,
     staleTime: 20_000,
+    refetchInterval: 30_000,
   })
 }
 
