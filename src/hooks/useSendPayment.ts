@@ -159,6 +159,26 @@ export function useSendPayment() {
     [isConnected, publicKey, supportedAssets, quoteMutation],
   )
 
+  const refreshQuote = useCallback(() => {
+    if (!state.quote || !state.formValues) return
+
+    if (state.quote.id) {
+      setState((s) => ({ ...s, step: 'quoting', error: null }))
+      quoteApi
+        .refreshQuote(state.quote.id)
+        .then((newQuote) => {
+          setState((s) => ({ ...s, step: 'review', quote: newQuote, error: null }))
+        })
+        .catch(() => {
+          if (state.formValues) {
+            requestQuote(state.formValues)
+          }
+        })
+    } else if (state.formValues) {
+      requestQuote(state.formValues)
+    }
+  }, [state.quote, state.formValues, requestQuote])
+
   const confirmSend = useCallback(() => {
     sendMutation.mutate()
   }, [sendMutation])
@@ -186,6 +206,7 @@ export function useSendPayment() {
   return {
     state,
     requestQuote,
+    refreshQuote,
     confirmSend,
     reset,
     goBack,
