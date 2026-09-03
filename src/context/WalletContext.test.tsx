@@ -20,6 +20,7 @@ const apiMocks = vi.hoisted(() => ({
 vi.mock('@/lib/api', () => apiMocks)
 
 import { WalletProvider, useWalletContext, WALLET_POLL_INTERVAL_MS } from './WalletContext'
+import { getNetworkPassphrase } from '@/lib/stellar'
 
 const PUBLIC_KEY_A = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'
 const PUBLIC_KEY_B = 'GDRREYWHQWJDICNH4SAH4TT2JPVYWIX6JEWAHE2W6BZDJBIJ4VSX227Z'
@@ -154,4 +155,35 @@ describe('Freighter account-drift polling', () => {
     expect(result.current.wallet.status).toBe('connected')
     expect(result.current.wallet.publicKey).toBe(PUBLIC_KEY_A)
   }, WALLET_POLL_INTERVAL_MS + 5_000)
+})
+
+describe('signTransaction', () => {
+  it('calls Freighter signTransaction with SDK getNetworkPassphrase for testnet and mainnet', async () => {
+    const { result } = await connectWallet(PUBLIC_KEY_A)
+    freighterMocks.signTransaction.mockResolvedValue('signed-xdr-output')
+
+    // Test on testnet
+    let signed = await act(async () => {
+      return await result.current.signTransaction('dummy-xdr-testnet')
+    })
+    expect(signed).toBe('signed-xdr-output')
+    expect(freighterMocks.signTransaction).toHaveBeenCalledWith('dummy-xdr-testnet', {
+      networkPassphrase: getNetworkPassphrase('testnet'),
+      accountToSign: PUBLIC_KEY_A,
+    })
+
+    // Switch to mainnet
+    act(() => {
+      result.current.setNetwork('mainnet')
+    })
+
+    signed = await act(async () => {
+      return await result.current.signTransaction('dummy-xdr-mainnet')
+    })
+    expect(signed).toBe('signed-xdr-output')
+    expect(freighterMocks.signTransaction).toHaveBeenCalledWith('dummy-xdr-mainnet', {
+      networkPassphrase: getNetworkPassphrase('mainnet'),
+      accountToSign: PUBLIC_KEY_A,
+    })
+  })
 })
