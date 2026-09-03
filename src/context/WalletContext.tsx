@@ -17,6 +17,7 @@ import {
 import type { Network, WalletState, AccountInfo } from '@/types'
 import { DEFAULT_SETTINGS } from '@/types'
 import { fetchAccountFromHorizon } from '@/lib/api'
+import { getNetworkPassphrase } from '@/lib/stellar'
 
 // Freighter's own popup lets the user switch accounts entirely outside this
 // app. Poll for that drift on an interval distinct from (and shorter than)
@@ -246,10 +247,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       // Dynamic import to avoid SSR issues
       const { signTransaction: freighterSign } = await import('@stellar/freighter-api')
 
-      const networkPassphrase =
-        wallet.network === 'testnet'
-          ? 'Test SDF Network ; September 2015'
-          : 'Public Global Stellar Network ; September 2015'
+      const networkPassphrase = getNetworkPassphrase(wallet.network)
 
       const result = await freighterSign(xdr, {
         networkPassphrase,
